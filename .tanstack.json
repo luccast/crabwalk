@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "projectName": "crabwalk",
+  "framework": "react",
+  "mode": "file-router",
+  "typescript": true,
+  "tailwind": true,
+  "packageManager": "npm",
+  "chosenIntegrations": [
+    "tanstack-query",
+    "tanstack-db",
+    "trpc"
+  ]
+}

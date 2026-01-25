@@ -1,0 +1,158 @@
+// Clawdbot Gateway Protocol v3 types
+
+// Frame types
+export interface RequestFrame {
+  type: 'req'
+  id: string
+  method: string
+  params?: unknown
+}
+
+export interface ResponseFrame {
+  type: 'res'
+  id: string
+  ok: boolean
+  payload?: unknown
+  error?: { code: string; message: string }
+}
+
+export interface EventFrame {
+  type: 'event'
+  event: string
+  payload?: unknown
+  seq?: number
+  stateVersion?: { presence: number; health: number }
+}
+
+export type GatewayFrame = RequestFrame | ResponseFrame | EventFrame
+
+// Connection
+export interface ClientInfo {
+  id: string
+  displayName: string
+  version: string
+  platform: string
+  mode: 'ui' | 'cli' | 'bot'
+}
+
+export interface ConnectParams {
+  minProtocol: 3
+  maxProtocol: 3
+  client: ClientInfo
+  auth?: { token?: string }
+}
+
+export interface HelloOk {
+  type: 'hello-ok'
+  protocol: number
+  snapshot: {
+    presence: PresenceEntry[]
+    health: unknown
+    stateVersion: { presence: number; health: number }
+  }
+  features: { methods: string[]; events: string[] }
+}
+
+export interface PresenceEntry {
+  key: string
+  client: ClientInfo
+  connectedAt: number
+}
+
+// Chat events
+export interface ChatEvent {
+  runId: string
+  sessionKey: string
+  seq: number
+  state: 'delta' | 'final' | 'aborted' | 'error'
+  message?: unknown
+  errorMessage?: string
+  usage?: {
+    inputTokens?: number
+    outputTokens?: number
+  }
+  stopReason?: string
+}
+
+// Agent events
+export interface AgentEvent {
+  runId: string
+  seq: number
+  stream: string
+  ts: number
+  data: Record<string, unknown>
+}
+
+// Sessions
+export interface SessionsListParams {
+  limit?: number
+  activeMinutes?: number
+  includeLastMessage?: boolean
+  agentId?: string
+}
+
+export interface SessionInfo {
+  key: string
+  agentId: string
+  createdAt: number
+  lastActivityAt: number
+  messageCount: number
+  lastMessage?: unknown
+}
+
+// App-level types
+export interface MonitorSession {
+  key: string
+  agentId: string
+  platform: string
+  recipient: string
+  isGroup: boolean
+  lastActivityAt: number
+  status: 'idle' | 'active' | 'thinking'
+}
+
+export interface MonitorAction {
+  id: string
+  runId: string
+  sessionKey: string
+  seq: number
+  type: 'delta' | 'final' | 'aborted' | 'error' | 'tool_call' | 'tool_result'
+  timestamp: number
+  content?: string
+  toolName?: string
+  toolArgs?: unknown
+  parentId?: string
+}
+
+// Utility functions
+export function parseSessionKey(key: string): {
+  agentId: string
+  platform: string
+  recipient: string
+  isGroup: boolean
+} {
+  // Format: "agent:claude:whatsapp:+1234567890"
+  // Or: "agent:claude:telegram:group:12345"
+  const parts = key.split(':')
+  const agentId = parts[1] || 'unknown'
+  const platform = parts[2] || 'unknown'
+  const isGroup = parts[3] === 'group'
+  const recipient = isGroup ? parts[4] || '' : parts.slice(3).join(':')
+
+  return { agentId, platform, recipient, isGroup }
+}
+
+export function createConnectParams(token?: string): ConnectParams {
+  return {
+    minProtocol: 3,
+    maxProtocol: 3,
+    client: {
+      id: 'clawdbot-control-ui',
+      displayName: 'Crabwalk Monitor',
+      version: '0.1.0',
+      platform: typeof window !== 'undefined' ? 'browser' : 'node',
+      mode: 'ui',
+    },
+    auth: token ? { token } : undefined,
+  }
+}
