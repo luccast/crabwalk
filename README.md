@@ -25,7 +25,14 @@ Requires clawdbot gateway running on `ws://127.0.0.1:18789`.
 
 ## Config
 
-Set `CLAWDBOT_API_TOKEN` env var for gateway authentication.
+```bash
+# Option 1: command line
+CLAWDBOT_API_TOKEN=your-token npm run dev
+
+# Option 2: env file
+echo "CLAWDBOT_API_TOKEN=your-token" > .env.local
+npm run dev
+```
 
 ## Stack
 
