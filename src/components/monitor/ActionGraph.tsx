@@ -194,21 +194,21 @@ function ActionGraphInner({
     })
   }, [rawNodes, rawEdges])
 
-  // Add chaser crab to layouted nodes
-  const nodesWithChaser = useMemo(() => {
+  // Initial nodes with chaser
+  const initialNodes = useMemo(() => {
     const chaserNode: Node = {
       id: CHASER_CRAB_ID,
       type: 'chaserCrab',
-      position: chaserPosition,
-      data: { state: chaserState, facingLeft },
+      position: { x: 0, y: 0 },
+      data: { state: 'idle' as ChaserCrabState, facingLeft: false },
       draggable: false,
       selectable: false,
       zIndex: 1000,
     }
     return [...layoutedNodes, chaserNode]
-  }, [layoutedNodes, chaserPosition, chaserState, facingLeft])
+  }, []) // Only on mount
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(nodesWithChaser)
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(layoutedEdges)
 
   // Detect new nodes and set them as targets for the chaser
@@ -238,47 +238,80 @@ function ActionGraphInner({
     prevNodeIdsRef.current = currentIds
   }, [layoutedNodes])
 
-  // Animation loop for chaser crab movement
+  // Animation loop for chaser crab movement - updates node directly
   useEffect(() => {
     if (!chaserTarget || chaserState === 'attacking') return
 
-    const animate = () => {
-      setChaserPosition((current) => {
-        const dx = chaserTarget.x - current.x
-        const dy = chaserTarget.y - current.y
-        const distance = Math.sqrt(dx * dx + dy * dy)
+    const positionRef = { ...chaserPosition }
+    let currentFacingLeft = facingLeft
 
-        // Check if we're close enough
-        if (distance < ATTACK_DISTANCE) {
-          // Randomly decide to attack or go idle
-          if (Math.random() < ATTACK_CHANCE) {
-            setChaserState('attacking')
-            // Return to idle after attack animation
-            attackTimeoutRef.current = setTimeout(() => {
-              setChaserState('idle')
-              setChaserTarget(null)
-            }, 400)
-          } else {
+    const animate = () => {
+      const dx = chaserTarget.x - positionRef.x
+      const dy = chaserTarget.y - positionRef.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+
+      // Check if we're close enough
+      if (distance < ATTACK_DISTANCE) {
+        // Randomly decide to attack or go idle
+        if (Math.random() < ATTACK_CHANCE) {
+          setChaserState('attacking')
+          setNodes((nds) =>
+            nds.map((n) =>
+              n.id === CHASER_CRAB_ID
+                ? { ...n, data: { state: 'attacking', facingLeft: currentFacingLeft } }
+                : n
+            )
+          )
+          attackTimeoutRef.current = setTimeout(() => {
             setChaserState('idle')
             setChaserTarget(null)
-          }
-          return current
+            setNodes((nds) =>
+              nds.map((n) =>
+                n.id === CHASER_CRAB_ID
+                  ? { ...n, data: { state: 'idle', facingLeft: currentFacingLeft } }
+                  : n
+              )
+            )
+          }, 400)
+        } else {
+          setChaserState('idle')
+          setChaserTarget(null)
+          setNodes((nds) =>
+            nds.map((n) =>
+              n.id === CHASER_CRAB_ID
+                ? { ...n, data: { state: 'idle', facingLeft: currentFacingLeft } }
+                : n
+            )
+          )
         }
+        setChaserPosition(positionRef)
+        return
+      }
 
-        // Move towards target
-        const vx = (dx / distance) * CRAB_SPEED
-        const vy = (dy / distance) * CRAB_SPEED
+      // Move towards target
+      const vx = (dx / distance) * CRAB_SPEED
+      const vy = (dy / distance) * CRAB_SPEED
 
-        // Update facing direction
-        if (Math.abs(vx) > 0.1) {
-          setFacingLeft(vx < 0)
-        }
+      // Update facing direction
+      if (Math.abs(vx) > 0.1) {
+        currentFacingLeft = vx < 0
+      }
 
-        return {
-          x: current.x + vx,
-          y: current.y + vy,
-        }
-      })
+      positionRef.x += vx
+      positionRef.y += vy
+
+      // Update only the chaser node
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === CHASER_CRAB_ID
+            ? {
+                ...n,
+                position: { x: positionRef.x, y: positionRef.y },
+                data: { state: 'running', facingLeft: currentFacingLeft },
+              }
+            : n
+        )
+      )
 
       animationFrameRef.current = requestAnimationFrame(animate)
     }
@@ -289,23 +322,33 @@ function ActionGraphInner({
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
       }
+      setChaserPosition(positionRef)
+      setFacingLeft(currentFacingLeft)
     }
-  }, [chaserTarget, chaserState])
+  }, [chaserTarget, chaserState, setNodes])
 
-  // Update nodes when layout or chaser changes
+  // Update layout nodes when they change (preserve chaser)
   useEffect(() => {
-    const chaserNode: Node = {
-      id: CHASER_CRAB_ID,
-      type: 'chaserCrab',
-      position: chaserPosition,
-      data: { state: chaserState, facingLeft },
-      draggable: false,
-      selectable: false,
-      zIndex: 1000,
-    }
-    setNodes([...layoutedNodes, chaserNode])
+    setNodes((nds) => {
+      const chaserNode = nds.find((n) => n.id === CHASER_CRAB_ID)
+      if (chaserNode) {
+        return [...layoutedNodes, chaserNode]
+      }
+      return [
+        ...layoutedNodes,
+        {
+          id: CHASER_CRAB_ID,
+          type: 'chaserCrab',
+          position: chaserPosition,
+          data: { state: chaserState, facingLeft },
+          draggable: false,
+          selectable: false,
+          zIndex: 1000,
+        },
+      ]
+    })
     setEdges(layoutedEdges)
-  }, [layoutedNodes, layoutedEdges, chaserPosition, chaserState, facingLeft, setNodes, setEdges])
+  }, [layoutedNodes, layoutedEdges, setNodes, setEdges])
 
   // Cleanup on unmount
   useEffect(() => {
