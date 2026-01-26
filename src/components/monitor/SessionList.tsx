@@ -84,7 +84,7 @@ export function SessionList({
       <div className="relative p-3 border-b-2 border-shell-700 bg-shell-950/50">
         <div className="flex items-center justify-between mb-3">
           {!collapsed && (
-            <h2 className="font-mono uppercase text-md text-crab-400 glow-red tracking-wider ml-1">
+            <h2 className="font-mono uppercase text-sm text-crab-400 glow-red tracking-wider ml-1">
               Sessions
             </h2>
           )}

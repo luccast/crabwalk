@@ -1,6 +1,5 @@
 import { Handle, Position } from '@xyflow/react'
 import { motion } from 'framer-motion'
-import { CrabIdleAnimation } from '~/components/ani'
 
 interface CrabNodeProps {
   data: { active: boolean }
@@ -30,15 +29,21 @@ export function CrabNode({ data }: CrabNodeProps) {
         }}
       />
 
-      {/* Animated crab */}
+      {/* Lobster icon */}
       <div className="relative z-10 crab-icon-glow">
-        <CrabIdleAnimation className="w-20 h-20" />
+        <img
+          src="/lobster-smoke.png"
+          alt=""
+          className="w-24 h-24 rounded-full opacity-80 hover:opacity-100 transition-opacity duration-300 animate-pulse"
+          style={{ imageRendering: 'pixelated' }}
+          draggable={false}
+        />
       </div>
 
       <Handle
         type="source"
         position={Position.Bottom}
-        className="bg-crab-500! w-4! h-4! border-2! border-shell-900!"
+        className="bg-crab-500! w-4! h-4! border-2! border-shell-900! z-10"
         style={{
           boxShadow: '0 0 10px rgba(239, 68, 68, 0.5)',
         }}

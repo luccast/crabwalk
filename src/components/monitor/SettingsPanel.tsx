@@ -69,7 +69,7 @@ export function SettingsPanel({
 
               {/* Header */}
               <div className="relative flex items-center justify-between mb-3">
-                <h2 className="font-mono uppercase text-md text-crab-400 glow-red tracking-wider">
+                <h2 className="font-mono uppercase text-sm text-crab-400 glow-red tracking-wider">
                   SETTINGS
                 </h2>
                 <button
