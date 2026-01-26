@@ -59,7 +59,7 @@ function Home() {
   }, [isHovering])
 
   return (
-    <div className="min-h-[calc(100vh-72px)] bg-shell-950 texture-grid relative overflow-hidden">
+    <div className="min-h-screen bg-shell-950 texture-grid relative overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute inset-0 bg-linear-to-br from-crab-950/20 via-transparent to-shell-950" />
       <div className="absolute top-0 left-0 w-96 h-96 bg-crab-600/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -70,7 +70,7 @@ function Home() {
       <CrabSilhouette className="absolute bottom-32 left-16 w-16 h-16 text-crab-900/8 -rotate-6" />
 
       {/* Main content */}
-      <div className="relative flex items-center justify-center min-h-[calc(100vh-72px)] px-4">
+      <div className="relative flex items-center justify-center min-h-screen px-4">
         <div className="text-center max-w-2xl">
           {/* Interactive animated crab with glow */}
           <motion.div

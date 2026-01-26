@@ -3,7 +3,6 @@ import { HeadContent, Scripts, createRootRoute, Link } from '@tanstack/react-rou
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { motion } from 'framer-motion'
 import appCss from '../styles.css?url'
-import { Header } from '../components/Header'
 import { QueryProvider } from '../integrations/query/provider'
 import { queryDevtoolsPlugin } from '../integrations/query/devtools'
 import { CrabIdleAnimation } from '../components/ani'
@@ -32,7 +31,7 @@ export const Route = createRootRoute({
 
 function NotFound() {
   return (
-    <div className="min-h-[calc(100vh-72px)] bg-shell-950 texture-grid flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen bg-shell-950 texture-grid flex items-center justify-center relative overflow-hidden">
       {/* Background glow */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="w-96 h-96 bg-crab-600/10 rounded-full blur-3xl" />
@@ -77,7 +76,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="bg-shell-950 text-gray-100">
         <QueryProvider>
-          <Header />
           {children}
           <TanStackRouterDevtools />
           {devtoolsPlugins.map((plugin, i) => (
