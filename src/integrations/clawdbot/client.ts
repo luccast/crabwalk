@@ -29,6 +29,7 @@ export class ClawdbotClient {
   private eventListeners: EventCallback[] = []
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private _connected = false
+  private _connecting = false
 
   constructor(
     private url: string = 'ws://127.0.0.1:18789',
@@ -40,10 +41,18 @@ export class ClawdbotClient {
   }
 
   async connect(): Promise<HelloOk> {
+    if (this._connecting) {
+      throw new Error('Connection already in progress')
+    }
+    if (this._connected) {
+      throw new Error('Already connected')
+    }
+    this._connecting = true
     console.log('[clawdbot] Connecting to', this.url)
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         console.log('[clawdbot] Connection timeout')
+        this._connecting = false
         this.ws?.close()
         reject(new Error('Connection timeout - is clawdbot gateway running?'))
       }, 10000)
@@ -65,7 +74,10 @@ export class ClawdbotClient {
         try {
           const raw = data.toString()
           const msg = JSON.parse(raw)
-          console.log('[clawdbot] Received:', msg.type || 'unknown', msg.event || '', raw.slice(0, 200))
+          // Only log non-tick events to reduce noise
+          if (msg.event !== 'tick' && msg.event !== 'health') {
+            console.log('[clawdbot] Received:', msg.type || 'unknown', msg.event || '')
+          }
 
           // Handle challenge-response auth
           if (msg.type === 'event' && msg.event === 'connect.challenge') {
@@ -81,6 +93,7 @@ export class ClawdbotClient {
 
       this.ws.on('error', (err) => {
         clearTimeout(timeout)
+        this._connecting = false
         console.error('[clawdbot] WebSocket error:', err)
         reject(err)
       })
@@ -88,8 +101,11 @@ export class ClawdbotClient {
       this.ws.on('close', (code, reason) => {
         clearTimeout(timeout)
         console.log('[clawdbot] WebSocket closed:', code, reason?.toString())
+        const wasConnected = this._connected
         this._connected = false
-        if (this._connected === false && code !== 1000) {
+        this._connecting = false
+        // Only reconnect if we were previously connected and it wasn't a clean close
+        if (wasConnected && code !== 1000) {
           this.scheduleReconnect()
         }
       })
@@ -139,6 +155,7 @@ export class ClawdbotClient {
           if (msg.ok && (msg.payload as HelloOk)?.type === 'hello-ok') {
             if (connectTimeout) clearTimeout(connectTimeout)
             this._connected = true
+            this._connecting = false
             console.log('[clawdbot] Connected successfully!')
             connectResolve?.(msg.payload as HelloOk)
           } else {

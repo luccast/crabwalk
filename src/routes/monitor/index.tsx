@@ -132,6 +132,15 @@ function MonitorPage() {
     }
   }, [])
 
+  // Poll for sessions while connected
+  useEffect(() => {
+    if (!connected) return
+    const interval = setInterval(() => {
+      loadSessions()
+    }, 5000) // Poll every 5 seconds
+    return () => clearInterval(interval)
+  }, [connected, historicalMode])
+
   return (
     <div className="h-screen flex flex-col bg-gray-950 text-white">
       {/* Header */}
