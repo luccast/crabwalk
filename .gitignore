@@ -33,3 +33,4 @@ pnpm-debug.log*
 src/routeTree.gen.ts
 
 documents/*
+.tanstack/tmp/*

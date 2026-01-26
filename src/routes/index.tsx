@@ -115,7 +115,7 @@ function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="font-display text-xl text-gray-400 mb-4 tracking-wide uppercase"
+            className="font-console font-bold text-lg text-gray-400 mb-4 tracking-wide uppercase"
           >
             Clawdbot Companion Monitor
           </motion.p>
@@ -125,7 +125,7 @@ function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="font-console text-shell-500 mb-10 max-w-md mx-auto"
+            className="font-console text-sm text-shell-500 mb-10 max-w-md mx-auto"
           >
             <span className="text-crab-600">&gt;</span> Real-time AI agent activity monitoring<br />
             <span className="text-crab-600">&gt;</span> Session tracking & action visualization<br />
@@ -159,8 +159,8 @@ function Home() {
             className="mt-6 inline-flex items-center gap-2 px-3 py-1.5 bg-shell-900/80 border border-shell-700 rounded-full"
           >
             <span className="w-2 h-2 rounded-full bg-neon-mint animate-pulse" />
-            <span className="font-console text-shell-500">
-              system online • v3.0
+            <span className="font-console font-bold text-[11px] uppercase text-shell-500">
+              system online • v1.0.1
             </span>
           </motion.div>
         </div>

@@ -124,8 +124,6 @@ body {
 /* Console monospace */
 .font-console {
   font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1.5;
   letter-spacing: 0.02em;
 }
 

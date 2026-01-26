@@ -248,7 +248,7 @@ export function SettingsPanel({
                 <div className="flex items-center justify-center gap-2 pt-4">
                   <span className="w-2 h-2 rounded-full bg-neon-mint animate-pulse" />
                   <span className="font-console text-[10px] text-shell-500">
-                    crabwalk v3.0
+                    crabwalk v1.0.1
                   </span>
                 </div>
               </div>
