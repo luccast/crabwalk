@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev --port 3000 --host",
     "build": "vite build",
-    "start": "node .output/server/index.mjs"
+    "start": "node dist/server/server.js"
   },
   "dependencies": {
     "@tanstack/db": "^0.5.0",

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev      # start dev server on port 3000
 npm run build    # production build
-npm start        # run production server (.output/server/index.mjs)
+npm start        # run production server (dist/server/server.js)
 ```
 
 ## Architecture
