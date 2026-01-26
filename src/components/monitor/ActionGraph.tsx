@@ -106,44 +106,46 @@ export function ActionGraph({
       })
     }
 
-    // Group actions by runId
-    const runActions = new Map<string, MonitorAction[]>()
-    for (const action of visibleActions) {
-      const run = runActions.get(action.runId) ?? []
-      run.push(action)
-      runActions.set(action.runId, run)
-    }
-
     // Build set of session node IDs for validation
     const sessionNodeIds = new Set(visibleSessions.map((s) => `session-${s.key}`))
 
-    // Connect session to first action of each run
-    for (const [runId, runActs] of runActions) {
-      const sorted = [...runActs].sort((a, b) => a.seq - b.seq)
-      const first = sorted[0]
-      if (first) {
-        const sessionId = `session-${first.sessionKey}`
-        // Only create edge if session node exists
-        if (sessionNodeIds.has(sessionId)) {
-          edges.push({
-            id: `e-session-${runId}`,
-            source: sessionId,
-            target: `action-${first.id}`,
-            animated: first.type === 'delta',
-            markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: '#6b7280' },
-          })
-        }
+    // Group actions by sessionKey and sort by timestamp
+    const sessionActions = new Map<string, MonitorAction[]>()
+    for (const action of visibleActions) {
+      const key = action.sessionKey
+      if (!key || key === 'lifecycle') continue
+      const list = sessionActions.get(key) ?? []
+      list.push(action)
+      sessionActions.set(key, list)
+    }
 
-        // Connect actions in sequence
-        for (let i = 1; i < sorted.length; i++) {
+    // Connect actions in a chain per session
+    for (const [sessionKey, actions] of sessionActions) {
+      const sorted = [...actions].sort((a, b) => a.timestamp - b.timestamp)
+      const sessionId = `session-${sessionKey}`
+
+      for (let i = 0; i < sorted.length; i++) {
+        const action = sorted[i]!
+        if (i === 0) {
+          // First action connects to session
+          if (sessionNodeIds.has(sessionId)) {
+            edges.push({
+              id: `e-session-${action.id}`,
+              source: sessionId,
+              target: `action-${action.id}`,
+              animated: action.type === 'delta',
+              markerEnd: { type: MarkerType.ArrowClosed },
+              style: { stroke: '#6b7280' },
+            })
+          }
+        } else {
+          // Subsequent actions chain to previous
           const prev = sorted[i - 1]!
-          const curr = sorted[i]!
           edges.push({
-            id: `e-${prev.id}-${curr.id}`,
+            id: `e-${prev.id}-${action.id}`,
             source: `action-${prev.id}`,
-            target: `action-${curr.id}`,
-            animated: curr.type === 'delta',
+            target: `action-${action.id}`,
+            animated: action.type === 'delta',
             markerEnd: { type: MarkerType.ArrowClosed },
             style: { stroke: '#6b7280' },
           })
