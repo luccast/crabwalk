@@ -127,6 +127,15 @@ body {
   letter-spacing: 0.02em;
 }
 
+/* Footer icons */
+.footer-icon-x {
+  display: inline-block;
+  transition: color 200ms ease; /* smooth hover */
+}
+.footer-icon-x:hover {
+  color: #86512f;               /* hover color */
+}
+
 code, pre {
   font-family: var(--font-mono);
 }

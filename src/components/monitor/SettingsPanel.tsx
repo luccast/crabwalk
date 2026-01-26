@@ -68,8 +68,8 @@ export function SettingsPanel({
               <div className="absolute inset-0 texture-scanlines pointer-events-none opacity-30" />
 
               {/* Header */}
-              <div className="relative flex items-center justify-between mb-8">
-                <h2 className="font-arcade text-sm text-crab-400 glow-red tracking-wider">
+              <div className="relative flex items-center justify-between mb-3">
+                <h2 className="font-mono uppercase text-md text-crab-400 glow-red tracking-wider">
                   SETTINGS
                 </h2>
                 <button
