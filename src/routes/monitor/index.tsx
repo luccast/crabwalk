@@ -97,8 +97,9 @@ function MonitorPage() {
 
   const loadSessions = async () => {
     try {
+      // Use longer time window - 60 minutes default, 24 hours for historical
       const result = await trpc.clawdbot.sessions.query(
-        historicalMode ? { activeMinutes: 60 } : { activeMinutes: 5 }
+        historicalMode ? { activeMinutes: 1440 } : { activeMinutes: 60 }
       )
       if (result.sessions) {
         const tx = createTransaction({ mutationFn: async () => {} })

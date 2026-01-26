@@ -30,7 +30,7 @@ const clawdbotRouter = router({
         status: 'connected' as const,
         protocol: hello.protocol,
         features: hello.features,
-        presenceCount: hello.snapshot.presence.length,
+        presenceCount: hello.snapshot?.presence?.length ?? 0,
       }
     } catch (error) {
       return {
