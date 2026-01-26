@@ -64,11 +64,20 @@ export const ActionNode = memo(function ActionNode({
   const config = typeConfig[data.type]
   const Icon = config.icon
 
-  const truncatedContent = data.content
-    ? data.content.length > 60
-      ? data.content.slice(0, 60) + '...'
-      : data.content
+  // Safely get content as string
+  const contentStr = typeof data.content === 'string'
+    ? data.content
+    : data.content != null
+      ? JSON.stringify(data.content)
+      : null
+
+  const truncatedContent = contentStr
+    ? contentStr.length > 80
+      ? contentStr.slice(0, 80) + '...'
+      : contentStr
     : null
+
+  const fullContent = contentStr
 
   return (
     <motion.div
@@ -105,7 +114,7 @@ export const ActionNode = memo(function ActionNode({
 
       {truncatedContent && (
         <div className="text-[11px] text-gray-300 leading-tight">
-          {expanded ? data.content : truncatedContent}
+          {expanded ? fullContent : truncatedContent}
         </div>
       )}
 

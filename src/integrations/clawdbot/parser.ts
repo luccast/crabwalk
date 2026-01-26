@@ -22,6 +22,9 @@ export function sessionInfoToMonitor(info: SessionInfo): MonitorSession {
 }
 
 export function chatEventToAction(event: ChatEvent): MonitorAction {
+  // Debug: log event structure
+  console.log('[parser] chat event:', JSON.stringify(event, null, 2))
+
   const action: MonitorAction = {
     id: `${event.runId}-${event.seq}`,
     runId: event.runId,
@@ -34,20 +37,43 @@ export function chatEventToAction(event: ChatEvent): MonitorAction {
   if (event.message) {
     if (typeof event.message === 'string') {
       action.content = event.message
-    } else if (
-      typeof event.message === 'object' &&
-      'content' in (event.message as Record<string, unknown>)
-    ) {
+    } else if (typeof event.message === 'object') {
       const msg = event.message as Record<string, unknown>
-      action.content = String(msg.content || '')
 
-      // Check for tool calls in message
+      // Try to extract text content from various message formats
+      if (typeof msg.content === 'string') {
+        action.content = msg.content
+      } else if (Array.isArray(msg.content)) {
+        // Content blocks format: [{type: 'text', text: '...'}]
+        const textBlocks = msg.content
+          .filter((b: unknown) => typeof b === 'object' && b && (b as Record<string, unknown>).type === 'text')
+          .map((b: unknown) => (b as Record<string, unknown>).text)
+          .join('')
+        action.content = textBlocks || undefined
+      } else if (typeof msg.text === 'string') {
+        action.content = msg.text
+      }
+
+      // Check for tool calls
       if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
         const tc = msg.tool_calls[0] as Record<string, unknown>
         if (tc) {
           action.type = 'tool_call'
           action.toolName = String(tc.name || 'unknown')
           action.toolArgs = tc.arguments
+        }
+      }
+
+      // Check for tool_use in content blocks
+      if (Array.isArray(msg.content)) {
+        const toolUse = msg.content.find(
+          (b: unknown) => typeof b === 'object' && b && (b as Record<string, unknown>).type === 'tool_use'
+        ) as Record<string, unknown> | undefined
+        if (toolUse) {
+          action.type = 'tool_call'
+          action.toolName = String(toolUse.name || 'unknown')
+          action.toolArgs = toolUse.input
+          action.content = `Tool: ${action.toolName}`
         }
       }
     }
