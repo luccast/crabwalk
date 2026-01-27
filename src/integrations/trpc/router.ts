@@ -9,6 +9,7 @@ import {
   sessionInfoToMonitor,
   type MonitorSession,
   type MonitorAction,
+  type MonitorExecEvent,
 } from '~/integrations/clawdbot'
 
 // Server-side debug mode state
@@ -137,9 +138,10 @@ const clawdbotRouter = router({
 
   events: publicProcedure.subscription(() => {
     return observable<{
-      type: 'session' | 'action'
+      type: 'session' | 'action' | 'exec'
       session?: Partial<MonitorSession>
       action?: MonitorAction
+      execEvent?: MonitorExecEvent
     }>((emit) => {
       const client = getClawdbotClient()
       const persistence = getPersistenceService()
@@ -163,6 +165,9 @@ const clawdbotRouter = router({
           if (debugMode && parsed.action) {
             console.log('[DEBUG] Parsed action:', parsed.action.type, parsed.action.eventType, 'sessionKey:', parsed.action.sessionKey)
           }
+          if (debugMode && parsed.execEvent) {
+            console.log('[DEBUG] Parsed exec:', parsed.execEvent.eventType, 'runId:', parsed.execEvent.runId, 'pid:', parsed.execEvent.pid)
+          }
           if (parsed.session) {
             emit.next({ type: 'session', session: parsed.session })
           }
@@ -170,6 +175,10 @@ const clawdbotRouter = router({
             // Persist action if service is enabled
             persistence.addAction(parsed.action)
             emit.next({ type: 'action', action: parsed.action })
+          }
+          if (parsed.execEvent) {
+            persistence.addExecEvent(parsed.execEvent)
+            emit.next({ type: 'exec', execEvent: parsed.execEvent })
           }
         }
       })
