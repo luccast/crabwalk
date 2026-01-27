@@ -146,7 +146,7 @@ function MonitorPage() {
   const hydrateFromPersistence = async () => {
     try {
       const status = await trpc.clawdbot.persistenceStatus.query()
-      if (status.sessionCount > 0 || status.actionCount > 0) {
+      if (status.sessionCount > 0 || status.actionCount > 0 || status.execEventCount > 0) {
         const data = await trpc.clawdbot.persistenceHydrate.query()
         hydrateFromServer(data.sessions, data.actions, data.execEvents ?? [])
         console.log(
