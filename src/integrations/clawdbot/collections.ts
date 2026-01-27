@@ -363,7 +363,8 @@ export function clearCollections() {
 // Hydrate collections from server persistence
 export function hydrateFromServer(
   sessions: MonitorSession[],
-  actions: MonitorAction[]
+  actions: MonitorAction[],
+  execEvents: MonitorExecEvent[] = []
 ) {
   // First clear existing data
   clearCollections()
@@ -378,5 +379,11 @@ export function hydrateFromServer(
   const sortedActions = [...actions].sort((a, b) => a.timestamp - b.timestamp)
   for (const action of sortedActions) {
     addAction(action)
+  }
+
+  // Replay exec events after actions to maximize sessionKey resolution
+  const sortedExecEvents = [...execEvents].sort((a, b) => a.timestamp - b.timestamp)
+  for (const event of sortedExecEvents) {
+    addExecEvent(event)
   }
 }
