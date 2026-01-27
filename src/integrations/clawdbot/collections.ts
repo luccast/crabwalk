@@ -1,5 +1,13 @@
 import { createCollection, localOnlyCollectionOptions } from '@tanstack/db'
-import { parseSessionKey, type MonitorSession, type MonitorAction } from './protocol'
+import {
+  parseSessionKey,
+  type MonitorSession,
+  type MonitorAction,
+  type MonitorExecEvent,
+  type MonitorExecProcess,
+  type MonitorExecOutputChunk,
+  type MonitorExecProcessStatus,
+} from './protocol'
 
 // Track runId → sessionKey mapping (learned from chat events)
 const runSessionMap = new Map<string, string>()
@@ -60,6 +68,100 @@ export const actionsCollection = createCollection(
   })
 )
 
+export const execsCollection = createCollection(
+  localOnlyCollectionOptions<MonitorExecProcess>({
+    id: 'clawdbot-execs',
+    getKey: (item) => item.id,
+  })
+)
+
+const EXEC_PLACEHOLDER_COMMAND = 'Exec'
+const MAX_EXEC_OUTPUT_CHUNKS = 200
+const MAX_EXEC_OUTPUT_CHARS = 50000
+const MAX_EXEC_CHUNK_CHARS = 4000
+
+function resolveSessionKey(event: MonitorExecEvent): string | undefined {
+  return event.sessionKey || runSessionMap.get(event.runId) || event.sessionId
+}
+
+function backfillExecSessionKey(runId: string, sessionKey: string) {
+  for (const exec of execsCollection.state.values()) {
+    if (exec.runId !== runId) continue
+    if (exec.sessionKey && exec.sessionKey !== exec.sessionId) continue
+    execsCollection.update(exec.id, (draft) => {
+      draft.sessionKey = sessionKey
+    })
+  }
+}
+
+function mapExecStatus(exitCode?: number, status?: string): MonitorExecProcessStatus {
+  if (typeof exitCode === 'number' && exitCode !== 0) return 'failed'
+  if (typeof status === 'string') {
+    const normalized = status.toLowerCase()
+    if (normalized.includes('fail') || normalized.includes('error')) {
+      return 'failed'
+    }
+  }
+  return 'completed'
+}
+
+function capExecOutputs(outputs: MonitorExecOutputChunk[]): {
+  outputs: MonitorExecOutputChunk[]
+  truncated: boolean
+} {
+  let truncated = false
+  const normalized: MonitorExecOutputChunk[] = outputs.map((chunk) => {
+    if (chunk.text.length <= MAX_EXEC_CHUNK_CHARS) {
+      return chunk
+    }
+    truncated = true
+    return {
+      ...chunk,
+      text: chunk.text.slice(0, MAX_EXEC_CHUNK_CHARS) + '\n...[truncated]',
+    }
+  })
+
+  let capped = normalized
+  if (capped.length > MAX_EXEC_OUTPUT_CHUNKS) {
+    truncated = true
+    capped = capped.slice(-MAX_EXEC_OUTPUT_CHUNKS)
+  }
+
+  let totalChars = capped.reduce((sum, chunk) => sum + chunk.text.length, 0)
+  if (totalChars > MAX_EXEC_OUTPUT_CHARS) {
+    truncated = true
+    const trimmed: MonitorExecOutputChunk[] = []
+    for (let i = capped.length - 1; i >= 0; i--) {
+      const chunk = capped[i]!
+      trimmed.push(chunk)
+      totalChars -= chunk.text.length
+      if (totalChars <= MAX_EXEC_OUTPUT_CHARS) break
+    }
+    capped = trimmed.reverse()
+  }
+
+  return { outputs: capped, truncated }
+}
+
+function createPlaceholderExec(event: MonitorExecEvent, sessionKey?: string): MonitorExecProcess {
+  const startedAt = event.startedAt ?? event.timestamp
+  return {
+    id: event.execId,
+    runId: event.runId,
+    pid: event.pid,
+    command: event.command || EXEC_PLACEHOLDER_COMMAND,
+    sessionId: event.sessionId,
+    sessionKey,
+    status: event.eventType === 'completed'
+      ? mapExecStatus(event.exitCode, event.status)
+      : 'running',
+    startedAt,
+    timestamp: startedAt,
+    outputs: [],
+    lastActivityAt: event.timestamp,
+  }
+}
+
 // Helper to update or insert session
 export function upsertSession(session: MonitorSession) {
   // Track activity on parent sessions
@@ -100,7 +202,11 @@ export function upsertSession(session: MonitorSession) {
 export function addAction(action: MonitorAction) {
   // Learn runId → sessionKey mapping from actions with real session keys
   if (action.sessionKey && !action.sessionKey.includes('lifecycle')) {
+    const previous = runSessionMap.get(action.runId)
     runSessionMap.set(action.runId, action.sessionKey)
+    if (previous !== action.sessionKey) {
+      backfillExecSessionKey(action.runId, action.sessionKey)
+    }
 
     // Track activity on parent sessions for spawn inference
     if (isParentSession(action.sessionKey)) {
@@ -191,6 +297,98 @@ export function addAction(action: MonitorAction) {
   }
 }
 
+export function addExecEvent(event: MonitorExecEvent) {
+  const sessionKey = resolveSessionKey(event)
+  const existing = execsCollection.state.get(event.execId)
+
+  if (event.eventType === 'started') {
+    if (existing) {
+      execsCollection.update(event.execId, (draft) => {
+        draft.command = event.command || draft.command || EXEC_PLACEHOLDER_COMMAND
+        draft.sessionId = event.sessionId || draft.sessionId
+        draft.sessionKey = sessionKey || draft.sessionKey
+        draft.status = 'running'
+        draft.startedAt = event.startedAt ?? draft.startedAt ?? event.timestamp
+        draft.timestamp = draft.startedAt
+        draft.lastActivityAt = event.timestamp
+      })
+      return
+    }
+
+    execsCollection.insert({
+      ...createPlaceholderExec(event, sessionKey),
+      command: event.command || EXEC_PLACEHOLDER_COMMAND,
+      startedAt: event.startedAt ?? event.timestamp,
+      timestamp: event.startedAt ?? event.timestamp,
+    })
+    return
+  }
+
+  if (event.eventType === 'output') {
+    const stream = event.stream || 'stdout'
+    const text = event.output ?? ''
+    const chunk: MonitorExecOutputChunk = {
+      id: event.id,
+      stream,
+      text,
+      timestamp: event.timestamp,
+    }
+
+    if (existing) {
+      execsCollection.update(event.execId, (draft) => {
+        draft.sessionId = event.sessionId || draft.sessionId
+        draft.sessionKey = sessionKey || draft.sessionKey
+        draft.lastActivityAt = event.timestamp
+        if (text) {
+          const capped = capExecOutputs([...draft.outputs, chunk])
+          draft.outputs = capped.outputs
+          draft.outputTruncated = draft.outputTruncated || capped.truncated
+        }
+      })
+      return
+    }
+
+    const placeholder = createPlaceholderExec(event, sessionKey)
+    if (text) {
+      const capped = capExecOutputs([chunk])
+      placeholder.outputs = capped.outputs
+      placeholder.outputTruncated = capped.truncated
+    }
+    execsCollection.insert(placeholder)
+    return
+  }
+
+  if (event.eventType === 'completed') {
+    const completedStatus = mapExecStatus(event.exitCode, event.status)
+    if (existing) {
+      execsCollection.update(event.execId, (draft) => {
+        draft.sessionId = event.sessionId || draft.sessionId
+        draft.sessionKey = sessionKey || draft.sessionKey
+        draft.command = event.command || draft.command || EXEC_PLACEHOLDER_COMMAND
+        draft.exitCode = event.exitCode ?? draft.exitCode
+        draft.durationMs = event.durationMs ?? draft.durationMs
+        const completedAt = draft.durationMs != null
+          ? draft.startedAt + draft.durationMs
+          : event.timestamp
+        draft.completedAt = completedAt
+        draft.status = completedStatus
+        draft.lastActivityAt = event.timestamp
+      })
+      return
+    }
+
+    const placeholder = createPlaceholderExec(event, sessionKey)
+    placeholder.command = event.command || placeholder.command
+    placeholder.exitCode = event.exitCode
+    placeholder.durationMs = event.durationMs
+    placeholder.completedAt = placeholder.durationMs != null
+      ? placeholder.startedAt + placeholder.durationMs
+      : event.timestamp
+    placeholder.status = completedStatus
+    execsCollection.insert(placeholder)
+  }
+}
+
 // Helper to update session status
 export function updateSessionStatus(
   key: string,
@@ -245,6 +443,9 @@ export function clearCollections() {
   }
   for (const action of actionsCollection.state.values()) {
     actionsCollection.delete(action.id)
+  }
+  for (const exec of execsCollection.state.values()) {
+    execsCollection.delete(exec.id)
   }
 }
 
