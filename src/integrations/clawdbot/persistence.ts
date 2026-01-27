@@ -1,12 +1,14 @@
 import fs from 'fs'
 import path from 'path'
-import type { MonitorSession, MonitorAction } from './protocol'
+import type { MonitorSession, MonitorAction, MonitorExecEvent } from './protocol'
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json')
 const ACTIONS_FILE = path.join(DATA_DIR, 'actions.jsonl')
+const EXEC_EVENTS_FILE = path.join(DATA_DIR, 'exec-events.jsonl')
 const STATE_FILE = path.join(DATA_DIR, 'state.json')
 const MAX_ACTIONS = 10000
+const MAX_EXEC_EVENTS = 20000
 
 interface PersistenceState {
   enabled: boolean
@@ -16,6 +18,7 @@ interface PersistenceState {
 class PersistenceService {
   private sessions: Map<string, MonitorSession> = new Map()
   private actions: MonitorAction[] = []
+  private execEvents: MonitorExecEvent[] = []
   private enabled = false
   private startedAt: number | null = null
 
@@ -90,6 +93,28 @@ class PersistenceService {
     } catch {
       // ignore
     }
+
+    // Load exec events (JSONL)
+    try {
+      if (fs.existsSync(EXEC_EVENTS_FILE)) {
+        const content = fs.readFileSync(EXEC_EVENTS_FILE, 'utf-8')
+        const lines = content.trim().split('\n').filter(Boolean)
+        for (const line of lines) {
+          try {
+            const event = JSON.parse(line) as MonitorExecEvent
+            this.execEvents.push(event)
+          } catch {
+            // skip bad lines
+          }
+        }
+        if (this.execEvents.length > MAX_EXEC_EVENTS) {
+          this.execEvents = this.execEvents.slice(-MAX_EXEC_EVENTS)
+          this.saveExecEvents()
+        }
+      }
+    } catch {
+      // ignore
+    }
   }
 
   private saveSessions() {
@@ -102,8 +127,17 @@ class PersistenceService {
     fs.writeFileSync(ACTIONS_FILE, content)
   }
 
+  private saveExecEvents() {
+    const content = this.execEvents.map((e) => JSON.stringify(e)).join('\n')
+    fs.writeFileSync(EXEC_EVENTS_FILE, content)
+  }
+
   private appendAction(action: MonitorAction) {
     fs.appendFileSync(ACTIONS_FILE, JSON.stringify(action) + '\n')
+  }
+
+  private appendExecEvent(event: MonitorExecEvent) {
+    fs.appendFileSync(EXEC_EVENTS_FILE, JSON.stringify(event) + '\n')
   }
 
   get isEnabled() {
@@ -131,12 +165,14 @@ class PersistenceService {
     startedAt: number | null
     sessionCount: number
     actionCount: number
+    execEventCount: number
   } {
     return {
       enabled: this.enabled,
       startedAt: this.startedAt,
       sessionCount: this.sessions.size,
       actionCount: this.actions.length,
+      execEventCount: this.execEvents.length,
     }
   }
 
@@ -168,19 +204,44 @@ class PersistenceService {
     }
   }
 
-  hydrate(): { sessions: MonitorSession[]; actions: MonitorAction[] } {
+  addExecEvent(event: MonitorExecEvent) {
+    if (!this.enabled) return
+
+    const existingIdx = this.execEvents.findIndex((e) => e.id === event.id)
+    if (existingIdx >= 0) {
+      this.execEvents[existingIdx] = event
+      this.saveExecEvents()
+    } else {
+      this.execEvents.push(event)
+      this.appendExecEvent(event)
+
+      if (this.execEvents.length > MAX_EXEC_EVENTS) {
+        this.execEvents = this.execEvents.slice(-MAX_EXEC_EVENTS)
+        this.saveExecEvents()
+      }
+    }
+  }
+
+  hydrate(): {
+    sessions: MonitorSession[]
+    actions: MonitorAction[]
+    execEvents: MonitorExecEvent[]
+  } {
     return {
       sessions: Array.from(this.sessions.values()),
       actions: [...this.actions],
+      execEvents: [...this.execEvents],
     }
   }
 
   clear(): { cleared: boolean } {
     this.sessions.clear()
     this.actions = []
+    this.execEvents = []
     try {
       if (fs.existsSync(SESSIONS_FILE)) fs.unlinkSync(SESSIONS_FILE)
       if (fs.existsSync(ACTIONS_FILE)) fs.unlinkSync(ACTIONS_FILE)
+      if (fs.existsSync(EXEC_EVENTS_FILE)) fs.unlinkSync(EXEC_EVENTS_FILE)
     } catch {
       // ignore
     }
