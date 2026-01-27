@@ -15,6 +15,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import { SessionNode } from './SessionNode'
 import { ActionNode } from './ActionNode'
+import { ExecNode } from './ExecNode'
 import { CrabNode } from './CrabNode'
 import { ChaserCrabNode, type ChaserCrabState } from './ChaserCrabNode'
 import { layoutGraph } from '~/lib/graph-layout'
@@ -51,6 +52,7 @@ const SIDEWAYS_DRIFT = 0.4 // crabs scuttle sideways
 const nodeTypes: NodeTypes = {
   session: SessionNode as any,
   action: ActionNode as any,
+  exec: ExecNode as any,
   crab: CrabNode as any,
   chaserCrab: ChaserCrabNode as any,
 }
@@ -130,6 +132,15 @@ function ActionGraphInner({
         type: 'action',
         position: { x: 0, y: 0 },
         data: action as unknown as Record<string, unknown>,
+      })
+    }
+
+    for (const exec of visibleExecs) {
+      nodes.push({
+        id: `exec-${exec.id}`,
+        type: 'exec',
+        position: { x: 0, y: 0 },
+        data: exec as unknown as Record<string, unknown>,
       })
     }
 
@@ -235,8 +246,46 @@ function ActionGraphInner({
       }
     }
 
+    const getExecEdgeStyle = (exec: MonitorExecProcess) => {
+      switch (exec.status) {
+        case 'running':
+          return {
+            animated: true,
+            style: { stroke: '#00ffd5', strokeDasharray: '4 4' },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#00ffd5' },
+          }
+        case 'failed':
+          return {
+            animated: false,
+            style: { stroke: '#ef4444' },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#ef4444' },
+          }
+        case 'completed':
+        default:
+          return {
+            animated: false,
+            style: { stroke: '#98ffc8' },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#98ffc8' },
+          }
+      }
+    }
+
+    for (const exec of visibleExecs) {
+      const key = exec.sessionKey
+      if (!key) continue
+      const sessionId = `session-${key}`
+      if (!sessionNodeIds.has(sessionId)) continue
+      const edgeStyle = getExecEdgeStyle(exec)
+      edges.push({
+        id: `e-session-exec-${exec.id}`,
+        source: sessionId,
+        target: `exec-${exec.id}`,
+        ...edgeStyle,
+      })
+    }
+
     return edges
-  }, [sessions, visibleActions, selectedSession])
+  }, [sessions, visibleActions, visibleExecs, selectedSession])
 
   // Apply layout
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
@@ -620,6 +669,12 @@ function ActionGraphInner({
             if (node.type === 'crab') return '#ef4444'
             if (node.type === 'chaserCrab') return '#ef4444'
             if (node.type === 'session') return '#98ffc8'
+            if (node.type === 'exec') {
+              const status = (node.data as unknown as MonitorExecProcess).status
+              if (status === 'running') return '#00ffd5'
+              if (status === 'failed') return '#ef4444'
+              return '#98ffc8'
+            }
             return '#52526e'
           }}
           maskColor="rgba(10, 10, 15, 0.8)"
