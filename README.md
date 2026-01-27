@@ -62,6 +62,12 @@ Find your token in the clawdbot config file:
 cat ~/.clawdbot/clawdbot.json | rg "gateway\.auth\.token"
 ```
 
+Or with jq:
+
+```bash
+jq '.gateway.auth.token' ~/.clawdbot/clawdbot.json
+```
+
 Or copy it directly:
 
 ```bash
