@@ -2,8 +2,12 @@ import type {
   EventFrame,
   ChatEvent,
   AgentEvent,
+  ExecStartedEvent,
+  ExecOutputEvent,
+  ExecCompletedEvent,
   MonitorSession,
   MonitorAction,
+  MonitorExecEvent,
   SessionInfo,
 } from './protocol'
 import { parseSessionKey } from './protocol'
@@ -147,7 +151,11 @@ export function agentEventToAction(event: AgentEvent): MonitorAction {
 
 export function parseEventFrame(
   frame: EventFrame
-): { session?: Partial<MonitorSession>; action?: MonitorAction } | null {
+): {
+  session?: Partial<MonitorSession>
+  action?: MonitorAction
+  execEvent?: MonitorExecEvent
+} | null {
   // Skip system events
   if (frame.event === 'health' || frame.event === 'tick') {
     return null
@@ -186,6 +194,99 @@ export function parseEventFrame(
     }
 
     return null
+  }
+
+  if (frame.event === 'exec.started' && frame.payload) {
+    const exec = frame.payload as ExecStartedEvent
+    const execId = `exec-${exec.runId}-${exec.pid}`
+    const timestamp = Date.now()
+    const id = frame.seq != null
+      ? `${execId}-started-${frame.seq}`
+      : `${execId}-started-${timestamp}`
+
+    return {
+      execEvent: {
+        id,
+        execId,
+        runId: exec.runId,
+        pid: exec.pid,
+        sessionId: exec.sessionId,
+        sessionKey: exec.sessionId,
+        eventType: 'started',
+        command: exec.command,
+        startedAt: exec.startedAt,
+        timestamp,
+      },
+      session: exec.sessionId
+        ? {
+            key: exec.sessionId,
+            status: 'thinking',
+            lastActivityAt: timestamp,
+          }
+        : undefined,
+    }
+  }
+
+  if (frame.event === 'exec.output' && frame.payload) {
+    const exec = frame.payload as ExecOutputEvent
+    const execId = `exec-${exec.runId}-${exec.pid}`
+    const timestamp = Date.now()
+    const id = frame.seq != null
+      ? `${execId}-output-${frame.seq}`
+      : `${execId}-output-${timestamp}`
+
+    return {
+      execEvent: {
+        id,
+        execId,
+        runId: exec.runId,
+        pid: exec.pid,
+        sessionId: exec.sessionId,
+        sessionKey: exec.sessionId,
+        eventType: 'output',
+        stream: exec.stream,
+        output: exec.output,
+        timestamp,
+      },
+      session: exec.sessionId
+        ? {
+            key: exec.sessionId,
+            lastActivityAt: timestamp,
+          }
+        : undefined,
+    }
+  }
+
+  if (frame.event === 'exec.completed' && frame.payload) {
+    const exec = frame.payload as ExecCompletedEvent
+    const execId = `exec-${exec.runId}-${exec.pid}`
+    const timestamp = Date.now()
+    const id = frame.seq != null
+      ? `${execId}-completed-${frame.seq}`
+      : `${execId}-completed-${timestamp}`
+
+    return {
+      execEvent: {
+        id,
+        execId,
+        runId: exec.runId,
+        pid: exec.pid,
+        sessionId: exec.sessionId,
+        sessionKey: exec.sessionId,
+        eventType: 'completed',
+        durationMs: exec.durationMs,
+        exitCode: exec.exitCode,
+        status: exec.status,
+        timestamp,
+      },
+      session: exec.sessionId
+        ? {
+            key: exec.sessionId,
+            status: 'active',
+            lastActivityAt: timestamp,
+          }
+        : undefined,
+    }
   }
 
   return null
