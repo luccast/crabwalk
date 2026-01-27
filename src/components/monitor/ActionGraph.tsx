@@ -18,11 +18,16 @@ import { ActionNode } from './ActionNode'
 import { CrabNode } from './CrabNode'
 import { ChaserCrabNode, type ChaserCrabState } from './ChaserCrabNode'
 import { layoutGraph } from '~/lib/graph-layout'
-import type { MonitorSession, MonitorAction } from '~/integrations/clawdbot'
+import type {
+  MonitorSession,
+  MonitorAction,
+  MonitorExecProcess,
+} from '~/integrations/clawdbot'
 
 interface ActionGraphProps {
   sessions: MonitorSession[]
   actions: MonitorAction[]
+  execs: MonitorExecProcess[]
   selectedSession: string | null
   onSessionSelect: (key: string | null) => void
 }
@@ -63,6 +68,7 @@ interface CrabAI {
 function ActionGraphInner({
   sessions,
   actions,
+  execs,
   selectedSession,
   onSessionSelect,
 }: ActionGraphProps) {
@@ -87,11 +93,17 @@ function ActionGraphInner({
     return actions.filter((a) => a.sessionKey === selectedSession)
   }, [actions, selectedSession])
 
+  const visibleExecs = useMemo(() => {
+    if (!selectedSession) return execs.slice(-50)
+    return execs.filter((exec) => exec.sessionKey === selectedSession)
+  }, [execs, selectedSession])
+
   // Build nodes
   const rawNodes = useMemo(() => {
     const nodes: Node[] = []
 
-    const hasActivity = sessions.length > 0 || visibleActions.length > 0
+    const hasActivity =
+      sessions.length > 0 || visibleActions.length > 0 || visibleExecs.length > 0
     nodes.push({
       id: CRAB_NODE_ID,
       type: 'crab',
@@ -122,7 +134,7 @@ function ActionGraphInner({
     }
 
     return nodes
-  }, [sessions, visibleActions, selectedSession])
+  }, [sessions, visibleActions, visibleExecs, selectedSession])
 
   // Build edges
   const rawEdges = useMemo(() => {

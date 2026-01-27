@@ -7,8 +7,10 @@ import { trpc } from '~/integrations/trpc/client'
 import {
   sessionsCollection,
   actionsCollection,
+  execsCollection,
   upsertSession,
   addAction,
+  addExecEvent,
   updateSessionStatus,
   clearCollections,
   hydrateFromServer,
@@ -83,10 +85,11 @@ function MonitorPage() {
   // Live queries from TanStack DB collections
   const sessionsQuery = useLiveQuery(sessionsCollection)
   const actionsQuery = useLiveQuery(actionsCollection)
+  const execsQuery = useLiveQuery(execsCollection)
 
   const sessions = sessionsQuery.data ?? []
   const actions = actionsQuery.data ?? []
-
+  const execs = execsQuery.data ?? []
 
   // Check connection status and persistence on mount
   useEffect(() => {
@@ -145,8 +148,10 @@ function MonitorPage() {
       const status = await trpc.clawdbot.persistenceStatus.query()
       if (status.sessionCount > 0 || status.actionCount > 0) {
         const data = await trpc.clawdbot.persistenceHydrate.query()
-        hydrateFromServer(data.sessions, data.actions)
-        console.log(`[monitor] hydrated ${data.sessions.length} sessions, ${data.actions.length} actions`)
+        hydrateFromServer(data.sessions, data.actions, data.execEvents ?? [])
+        console.log(
+          `[monitor] hydrated ${data.sessions.length} sessions, ${data.actions.length} actions, ${(data.execEvents ?? []).length} exec events`
+        )
       }
       setPersistenceEnabled(status.enabled)
       setPersistenceStartedAt(status.startedAt)
@@ -331,6 +336,9 @@ function MonitorPage() {
         if (data.type === 'action' && data.action) {
           addAction(data.action)
         }
+        if (data.type === 'exec' && data.execEvent) {
+          addExecEvent(data.execEvent)
+        }
       },
       onError: (err) => {
         console.error('[monitor] subscription error:', err)
@@ -458,6 +466,7 @@ function MonitorPage() {
           <ActionGraph
             sessions={sessions}
             actions={actions}
+            execs={execs}
             selectedSession={selectedSession}
             onSessionSelect={setSelectedSession}
           />
