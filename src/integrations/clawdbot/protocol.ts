@@ -84,6 +84,32 @@ export interface AgentEvent {
   sessionKey?: string
 }
 
+// Exec events
+export interface ExecStartedEvent {
+  pid: number
+  command: string
+  sessionId: string
+  runId: string
+  startedAt: number
+}
+
+export interface ExecOutputEvent {
+  pid: number
+  runId: string
+  sessionId?: string
+  stream: 'stdout' | 'stderr' | string
+  output: string
+}
+
+export interface ExecCompletedEvent {
+  pid: number
+  runId: string
+  sessionId?: string
+  exitCode: number
+  durationMs: number
+  status: string
+}
+
 // Sessions
 export interface SessionsListParams {
   limit?: number
@@ -130,6 +156,53 @@ export interface MonitorAction {
   inputTokens?: number
   outputTokens?: number
   stopReason?: string
+}
+
+export type MonitorExecEventType = 'started' | 'output' | 'completed'
+
+export interface MonitorExecEvent {
+  id: string
+  execId: string
+  runId: string
+  pid: number
+  sessionId?: string
+  sessionKey?: string
+  eventType: MonitorExecEventType
+  command?: string
+  stream?: 'stdout' | 'stderr' | string
+  output?: string
+  startedAt?: number
+  durationMs?: number
+  exitCode?: number
+  status?: string
+  timestamp: number
+}
+
+export type MonitorExecProcessStatus = 'running' | 'completed' | 'failed'
+
+export interface MonitorExecOutputChunk {
+  id: string
+  stream: 'stdout' | 'stderr' | string
+  text: string
+  timestamp: number
+}
+
+export interface MonitorExecProcess {
+  id: string
+  runId: string
+  pid: number
+  command: string
+  sessionId?: string
+  sessionKey?: string
+  status: MonitorExecProcessStatus
+  startedAt: number
+  completedAt?: number
+  durationMs?: number
+  exitCode?: number
+  outputs: MonitorExecOutputChunk[]
+  outputTruncated?: boolean
+  timestamp: number
+  lastActivityAt: number
 }
 
 // Utility functions
