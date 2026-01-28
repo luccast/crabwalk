@@ -103,19 +103,6 @@ function MonitorPage() {
     console.log(`[monitor] cleared ${count} completed execs`)
   }, [])
 
-  // Keyboard shortcut: Ctrl+K to clear completed
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault()
-        if (completedCount > 0) {
-          handleClearCompleted()
-        }
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [completedCount, handleClearCompleted])
 
   // Check connection status and persistence on mount
   useEffect(() => {
