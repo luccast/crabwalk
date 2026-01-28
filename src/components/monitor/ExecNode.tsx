@@ -1,7 +1,7 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { Handle, Position } from '@xyflow/react'
-import { motion } from 'framer-motion'
-import { CheckCircle, Loader2, Terminal, XCircle } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { CheckCircle, Copy, Check, Loader2, Terminal, XCircle } from 'lucide-react'
 import type { MonitorExecProcess, MonitorExecOutputChunk } from '~/integrations/clawdbot'
 
 interface ExecNodeProps {
@@ -79,11 +79,19 @@ function streamStyle(stream: MonitorExecOutputChunk['stream']): string {
 
 export const ExecNode = memo(function ExecNode({ data, selected }: ExecNodeProps) {
   const [expanded, setExpanded] = useState(false)
+  const [copied, setCopied] = useState(false)
   const status = statusConfig[data.status]
   const StatusIcon = status.icon
 
   const preview = useMemo(() => tailLinesFromChunks(data.outputs, 3), [data.outputs])
   const hasOutput = data.outputs.length > 0
+
+  const handleCopyPid = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(String(data.pid))
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }, [data.pid])
 
   const displayDuration =
     data.durationMs != null
@@ -131,10 +139,41 @@ export const ExecNode = memo(function ExecNode({ data, selected }: ExecNodeProps
         >
           {data.command}
         </span>
-        <StatusIcon
-          size={14}
-          className={`${status.iconColor} ${status.animate ? 'animate-spin' : ''} ml-auto`}
-        />
+        <div className="ml-auto flex items-center gap-1.5">
+          <button
+            onClick={handleCopyPid}
+            className="p-1 rounded hover:bg-shell-700 transition-colors"
+            title={`Copy PID: ${data.pid}`}
+          >
+            <AnimatePresence mode="wait">
+              {copied ? (
+                <motion.div
+                  key="check"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <Check size={12} className="text-neon-mint" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="copy"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <Copy size={12} className="text-shell-400 hover:text-shell-200" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </button>
+          <StatusIcon
+            size={14}
+            className={`${status.iconColor} ${status.animate ? 'animate-spin' : ''}`}
+          />
+        </div>
       </div>
 
       <div className="font-console text-xs text-shell-500 mb-1.5">
