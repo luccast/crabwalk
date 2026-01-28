@@ -311,12 +311,12 @@ export function SessionList({
                           return next;
                         });
                       }}
-                      className={`w-full text-left border-b border-shell-800/50 transition-all ${
-                        collapsed ? "p-1.5" : "px-4 py-1"
-                      } flex items-center gap-1.5 text-[10px] font-display uppercase tracking-widest text-shell-500 hover:text-shell-300 hover:bg-shell-800/30`}
+                      className={`w-full border-b border-shell-800/50 transition-all ${
+                        collapsed ? "p-2 justify-center" : "px-4 py-1.5 text-left"
+                      } flex items-center gap-1.5 text-xs font-display uppercase tracking-widest text-shell-500 hover:text-shell-300 hover:bg-shell-800/30`}
                     >
                       <ChevronDown
-                        size={10}
+                        size={14}
                         className={`transition-transform ${isGroupCollapsed ? "-rotate-90" : ""}`}
                       />
                       {!collapsed && (
