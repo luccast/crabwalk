@@ -76,6 +76,7 @@ export const SessionNode = memo(function SessionNode({
       }}
     >
       <Handle type="target" position={Position.Top} className="bg-crab-500! w-3! h-3! border-2! border-shell-900!" />
+      <Handle type="target" id="spawn-target" position={Position.Left} className="bg-neon-cyan! w-3! h-3! border-2! border-shell-900!" />
 
       <div className="flex items-center gap-2 mb-2">
         <span className="text-xl">{platformIcon}</span>
@@ -139,6 +140,7 @@ export const SessionNode = memo(function SessionNode({
       )}
 
       <Handle type="source" position={Position.Bottom} className="bg-crab-500! w-3! h-3! border-2! border-shell-900!" />
+      <Handle type="source" id="spawn-source" position={Position.Right} className="bg-neon-cyan! w-3! h-3! border-2! border-shell-900!" />
     </motion.div>
   )
 })

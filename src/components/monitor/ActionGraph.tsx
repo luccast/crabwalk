@@ -158,26 +158,20 @@ function ActionGraphInner({
     // Build a set of visible session keys for parent lookup
     const visibleSessionKeys = new Set(visibleSessions.map((s) => s.key))
 
-    for (const session of visibleSessions) {
-      // If this session was spawned by another session, connect to parent
-      // Otherwise connect to the crab origin node
-      const parentSessionKey = session.spawnedBy
-      const sourceId =
-        parentSessionKey && visibleSessionKeys.has(parentSessionKey)
-          ? `session-${parentSessionKey}`
-          : CRAB_NODE_ID
-
-      edges.push({
-        id: `e-crab-${session.key}`,
-        source: sourceId,
-        target: `session-${session.key}`,
-        markerEnd: { type: MarkerType.ArrowClosed, color: '#ef4444' },
-        style: { stroke: '#ef4444', strokeWidth: 2 },
-      })
+    // Edge styles
+    const spawnEdgeStyle = {
+      animated: true,
+      style: { stroke: '#00ffd5', strokeWidth: 2, strokeDasharray: '8 4' },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#00ffd5' },
     }
 
-    const sessionNodeIds = new Set(visibleSessions.map((s) => `session-${s.key}`))
+    const crabEdgeStyle = {
+      animated: false,
+      style: { stroke: '#ef4444', strokeWidth: 2 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#ef4444' },
+    }
 
+    // Group actions by session for spawn point lookup
     const sessionActions = new Map<string, MonitorAction[]>()
     for (const action of visibleActions) {
       const key = action.sessionKey
@@ -186,6 +180,39 @@ function ActionGraphInner({
       list.push(action)
       sessionActions.set(key, list)
     }
+    // Sort each session's actions by timestamp
+    for (const [key, actions] of sessionActions) {
+      sessionActions.set(key, [...actions].sort((a, b) => a.timestamp - b.timestamp))
+    }
+
+    // Connect sessions to their spawn sources
+    for (const session of visibleSessions) {
+      const parentSessionKey = session.spawnedBy
+
+      if (parentSessionKey && visibleSessionKeys.has(parentSessionKey)) {
+        // This session was spawned by another session
+        // Connect from parent's right handle to child's left handle (horizontal spawn)
+        edges.push({
+          id: `e-spawn-${session.key}`,
+          source: `session-${parentSessionKey}`,
+          target: `session-${session.key}`,
+          sourceHandle: 'spawn-source',
+          targetHandle: 'spawn-target',
+          type: 'smoothstep',
+          ...spawnEdgeStyle,
+        })
+      } else {
+        // Root session - connect from crab
+        edges.push({
+          id: `e-crab-${session.key}`,
+          source: CRAB_NODE_ID,
+          target: `session-${session.key}`,
+          ...crabEdgeStyle,
+        })
+      }
+    }
+
+    const sessionNodeIds = new Set(visibleSessions.map((s) => `session-${s.key}`))
 
     const getEdgeStyle = (action: MonitorAction) => {
       switch (action.type) {
@@ -228,8 +255,9 @@ function ActionGraphInner({
       }
     }
 
+    // Connect actions within each session (vertical flow)
     for (const [sessionKey, actions] of sessionActions) {
-      const sorted = [...actions].sort((a, b) => a.timestamp - b.timestamp)
+      const sorted = actions // Already sorted above
       const sessionId = `session-${sessionKey}`
 
       for (let i = 0; i < sorted.length; i++) {
@@ -237,6 +265,7 @@ function ActionGraphInner({
         const edgeStyle = getEdgeStyle(action)
 
         if (i === 0) {
+          // First action connects from session node
           if (sessionNodeIds.has(sessionId)) {
             edges.push({
               id: `e-session-${action.id}`,
@@ -246,6 +275,7 @@ function ActionGraphInner({
             })
           }
         } else {
+          // Subsequent actions connect from previous action
           const prev = sorted[i - 1]!
           edges.push({
             id: `e-${prev.id}-${action.id}`,
@@ -281,6 +311,7 @@ function ActionGraphInner({
       }
     }
 
+    // Connect execs to their session
     for (const exec of visibleExecs) {
       const key = exec.sessionKey
       if (!key) continue
