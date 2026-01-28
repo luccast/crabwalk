@@ -13,19 +13,20 @@ export interface LayoutOptions {
   nodeSep?: number
 }
 
-// Node sizing configuration
+// Node sizing configuration - sized generously for layout calculations
 const NODE_DIMENSIONS = {
-  session: { width: 200, height: 120 },
-  exec: { width: 260, height: 100 },
-  action: { width: 180, height: 80 }, // Compact chat events
+  session: { width: 280, height: 140 },  // Wider for session cards
+  exec: { width: 300, height: 120 },     // Exec processes need room
+  action: { width: 220, height: 100 },   // Chat events with padding
   crab: { width: 64, height: 64 },
 }
 
-// Layout constants
-const COLUMN_GAP = 300        // Horizontal gap between session columns
-const ROW_GAP = 40           // Vertical gap between items in a column
-const SPAWN_OFFSET = 50       // Extra Y offset when spawning to right
-const CRAB_OFFSET = { x: -100, y: -80 }
+// Layout constants - generous spacing for clarity
+const COLUMN_GAP = 400        // Horizontal gap between session columns
+const ROW_GAP = 80            // Vertical gap between items in a column
+const SPAWN_OFFSET = 60       // Extra Y offset when spawning to right
+const CRAB_OFFSET = { x: -120, y: -100 }
+const MIN_SESSION_GAP = 120   // Minimum vertical gap between sessions in same column
 
 interface SessionColumn {
   sessionKey: string
@@ -208,31 +209,55 @@ export function layoutGraph(
     positionedNodeIds.add(crabNode.id)
   }
 
-  // Track column slots for collision avoidance
-  const usedColumnSlots = new Map<number, number[]>() // columnIndex -> list of Y positions used
+  // Track column usage for collision avoidance: columnIndex -> list of {startY, endY} ranges
+  const columnRanges = new Map<number, Array<{ startY: number; endY: number }>>()
 
-  // Get X position for a column, avoiding collisions
-  const getColumnX = (columnIndex: number, spawnY: number): number => {
-    const baseX = columnIndex * COLUMN_GAP
-    
-    // Check if this column slot is already used at similar Y
-    const usedSlots = usedColumnSlots.get(columnIndex) ?? []
-    const conflicts = usedSlots.filter((usedY) => Math.abs(usedY - spawnY) < 200)
-    
-    if (conflicts.length === 0) {
-      usedSlots.push(spawnY)
-      usedColumnSlots.set(columnIndex, usedSlots)
-      return baseX
-    }
-    
-    // Shift right if there's a collision
-    return baseX + conflicts.length * 100
+  // Get X position for a column (all nodes in same column share same X)
+  const getColumnX = (columnIndex: number): number => {
+    return columnIndex * COLUMN_GAP
   }
 
+  // Adjust spawn Y to avoid collisions with existing sessions in same column
+  const adjustSpawnY = (columnIndex: number, desiredY: number, itemCount: number): number => {
+    const ranges = columnRanges.get(columnIndex) ?? []
+    const estimatedHeight = itemCount * (NODE_DIMENSIONS.action.height + ROW_GAP) + MIN_SESSION_GAP
+    
+    let adjustedY = desiredY
+    
+    // Check for overlaps and shift down if needed
+    for (const range of ranges) {
+      // If our desired position overlaps with an existing range
+      if (adjustedY < range.endY && (adjustedY + estimatedHeight) > range.startY) {
+        // Shift below this range with minimum gap
+        adjustedY = range.endY + MIN_SESSION_GAP
+      }
+    }
+    
+    // Record our range
+    ranges.push({ startY: adjustedY, endY: adjustedY + estimatedHeight })
+    columnRanges.set(columnIndex, ranges)
+    
+    return adjustedY
+  }
+
+  // Sort sessions by column index (process column 0 first, then 1, etc.)
+  // This ensures parent sessions are positioned before children
+  const sortedSessionKeys = Array.from(sessionColumns.keys()).sort((a, b) => {
+    const colA = sessionColumns.get(a)!.columnIndex
+    const colB = sessionColumns.get(b)!.columnIndex
+    if (colA !== colB) return colA - colB
+    // Within same column, sort by spawn Y (earlier spawns first)
+    return sessionColumns.get(a)!.spawnY - sessionColumns.get(b)!.spawnY
+  })
+
   // Position each session's column
-  for (const [, col] of sessionColumns) {
-    const columnX = getColumnX(col.columnIndex, col.spawnY)
-    let currentY = col.spawnY
+  for (const sessionKey of sortedSessionKeys) {
+    const col = sessionColumns.get(sessionKey)!
+    const columnX = getColumnX(col.columnIndex)
+    
+    // Adjust Y position to avoid collisions with other sessions in same column
+    const adjustedY = adjustSpawnY(col.columnIndex, col.spawnY, col.items.length)
+    let currentY = adjustedY
 
     for (const item of col.items) {
       const dims = NODE_DIMENSIONS[item.type]
