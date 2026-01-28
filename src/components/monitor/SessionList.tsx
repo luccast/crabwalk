@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, ChevronLeft, ChevronRight, Github } from "lucide-react";
 import { StatusIndicator } from "./StatusIndicator";
 import type { MonitorSession } from "~/integrations/clawdbot";
+
+function isSubagent(session: MonitorSession): boolean {
+  return Boolean(session.spawnedBy) || session.platform === "subagent" || session.key.includes("subagent");
+}
 
 function XIcon({
   size = 14,
@@ -41,6 +45,56 @@ const platformEmoji: Record<string, string> = {
   slack: "💼",
 };
 
+function SubagentItem({
+  session,
+  selected,
+  collapsed,
+  onSelect,
+}: {
+  session: MonitorSession;
+  selected: boolean;
+  collapsed: boolean;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <motion.button
+      layout
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -10 }}
+      onClick={() => onSelect(session.key)}
+      className={`w-full text-left border-b border-shell-800/50 transition-all duration-150 group ${
+        collapsed ? "p-2" : "py-2 pr-3 pl-6"
+      } ${
+        selected
+          ? "bg-neon-cyan/5 border-l-2 border-l-neon-cyan"
+          : "hover:bg-shell-800/30 border-l-2 border-l-transparent"
+      }`}
+      title={collapsed ? "subagent" : undefined}
+    >
+      {collapsed ? (
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-sm">🦞</span>
+          <StatusIndicator status={session.status} size="sm" />
+        </div>
+      ) : (
+        <>
+          <div className="font-display text-[9px] font-medium text-neon-cyan/60 uppercase tracking-widest mb-1">
+            subagent
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm">🦞</span>
+            <span className="font-console text-[11px] text-shell-400 truncate flex-1 group-hover:text-shell-200">
+              {session.agentId}
+            </span>
+            <StatusIndicator status={session.status} size="sm" />
+          </div>
+        </>
+      )}
+    </motion.button>
+  );
+}
+
 export function SessionList({
   sessions,
   selectedKey,
@@ -51,9 +105,10 @@ export function SessionList({
   const [filter, setFilter] = useState("");
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
 
-  const platforms = [...new Set(sessions.map((s) => s.platform))];
+  const parentSessions = sessions.filter((s) => !isSubagent(s));
+  const platforms = [...new Set(parentSessions.map((s) => s.platform))];
 
-  const filteredSessions = sessions.filter((session) => {
+  const filteredParents = parentSessions.filter((session) => {
     const matchesText =
       !filter ||
       session.recipient.toLowerCase().includes(filter.toLowerCase()) ||
@@ -64,11 +119,44 @@ export function SessionList({
   });
 
   // Sort: active first, then by lastActivityAt
-  const sortedSessions = [...filteredSessions].sort((a, b) => {
+  const sortedParents = [...filteredParents].sort((a, b) => {
     if (a.status !== "idle" && b.status === "idle") return -1;
     if (a.status === "idle" && b.status !== "idle") return 1;
     return b.lastActivityAt - a.lastActivityAt;
   });
+
+  // Group subagents by parent key
+  const { subagentsByParent, orphanSubagents } = useMemo(() => {
+    const byParent = new Map<string, MonitorSession[]>();
+    const orphans: MonitorSession[] = [];
+    const parentKeys = new Set(parentSessions.map((s) => s.key));
+
+    for (const session of sessions) {
+      if (!isSubagent(session)) continue;
+      const matchesFilter =
+        !filter ||
+        session.agentId.toLowerCase().includes(filter.toLowerCase()) ||
+        "subagent".includes(filter.toLowerCase());
+      if (!matchesFilter) continue;
+
+      if (session.spawnedBy && parentKeys.has(session.spawnedBy)) {
+        const list = byParent.get(session.spawnedBy) ?? [];
+        list.push(session);
+        byParent.set(session.spawnedBy, list);
+      } else {
+        orphans.push(session);
+      }
+    }
+
+    // Sort subagents within each group by activity
+    for (const [key, list] of byParent) {
+      list.sort((a, b) => b.lastActivityAt - a.lastActivityAt);
+      byParent.set(key, list);
+    }
+    orphans.sort((a, b) => b.lastActivityAt - a.lastActivityAt);
+
+    return { subagentsByParent: byParent, orphanSubagents: orphans };
+  }, [sessions, parentSessions, filter]);
 
   return (
     <motion.div
@@ -119,7 +207,7 @@ export function SessionList({
               <div className="flex gap-1.5 mt-3 flex-wrap">
                 <button
                   onClick={() => setPlatformFilter(null)}
-                  className={`px-2.5 py-1 text-[10px] font-display uppercase tracking-wide rounded border transition-all ${
+                  className={`px-2.5 py-1 text-[11px] font-display uppercase tracking-wide rounded border transition-all ${
                     !platformFilter
                       ? "bg-crab-600 border-crab-500 text-white box-glow-red"
                       : "bg-shell-800 border-shell-700 text-gray-400 hover:border-shell-600 hover:text-gray-300"
@@ -131,7 +219,7 @@ export function SessionList({
                   <button
                     key={p}
                     onClick={() => setPlatformFilter(p)}
-                    className={`px-2.5 py-1 text-[10px] font-display uppercase tracking-wide rounded border transition-all ${
+                    className={`px-2.5 py-1 text-[11px] font-display uppercase tracking-wide rounded border transition-all ${
                       platformFilter === p
                         ? "bg-crab-600 border-crab-500 text-white box-glow-red"
                         : "bg-shell-800 border-shell-700 text-gray-400 hover:border-shell-600 hover:text-gray-300"
@@ -149,64 +237,88 @@ export function SessionList({
       {/* Session list */}
       <div className="relative flex-1 overflow-y-auto">
         <AnimatePresence mode="popLayout">
-          {sortedSessions.map((session) => (
-            <motion.button
-              key={session.key}
-              layout
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              onClick={() => onSelect(session.key)}
-              className={`w-full text-left p-3 border-b border-shell-800 transition-all duration-150 group ${
-                selectedKey === session.key
-                  ? "bg-crab-900/20 border-l-2 border-l-crab-500"
-                  : "hover:bg-shell-800/50 border-l-2 border-l-transparent"
-              }`}
-              title={
-                collapsed
-                  ? `${session.recipient} (${session.platform})`
-                  : undefined
-              }
-            >
-              {collapsed ? (
-                // Collapsed view: just icon and status
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-lg">
-                    {platformEmoji[session.platform] || "📱"}
-                  </span>
-                  <StatusIndicator status={session.status} size="sm" />
-                </div>
-              ) : (
-                // Expanded view
-                <>
-                  <div className="flex items-center gap-2 mb-1.5">
+          {sortedParents.map((session) => (
+            <div key={session.key}>
+              <motion.button
+                layout
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                onClick={() => onSelect(session.key)}
+                className={`w-full text-left p-3 border-b border-shell-800 transition-all duration-150 group ${
+                  selectedKey === session.key
+                    ? "bg-crab-900/20 border-l-2 border-l-crab-500"
+                    : "hover:bg-shell-800/50 border-l-2 border-l-transparent"
+                }`}
+                title={
+                  collapsed
+                    ? `${session.recipient} (${session.platform})`
+                    : undefined
+                }
+              >
+                {collapsed ? (
+                  <div className="flex flex-col items-center gap-1">
                     <span className="text-lg">
                       {platformEmoji[session.platform] || "📱"}
                     </span>
-                    <span className="font-display text-xs font-medium text-gray-200 truncate flex-1 uppercase tracking-wide group-hover:text-white">
-                      {session.recipient}
-                    </span>
                     <StatusIndicator status={session.status} size="sm" />
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="font-console text-[10px] text-shell-500 truncate flex-1">
-                      {session.agentId}
-                    </span>
-                    {session.isGroup && (
-                      <span className="flex items-center gap-1 px-1.5 py-0.5 bg-shell-800 border border-shell-700 rounded text-[11px] text-shell-400">
-                        <Users size={10} />
-                        group
+                ) : (
+                  <>
+                    <div className="font-display text-[9px] font-medium text-shell-500 uppercase tracking-widest mb-1">
+                      main
+                    </div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-lg">
+                        {platformEmoji[session.platform] || "📱"}
                       </span>
-                    )}
-                  </div>
-                </>
-              )}
-            </motion.button>
+                      <span className="font-display text-xs font-medium text-gray-200 truncate flex-1 uppercase tracking-wide group-hover:text-white">
+                        {session.recipient}
+                      </span>
+                      <StatusIndicator status={session.status} size="sm" />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="font-console text-[11px] text-shell-500 truncate flex-1">
+                        {session.agentId}
+                      </span>
+                      {session.isGroup && (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-shell-800 border border-shell-700 rounded text-[11px] text-shell-400">
+                          <Users size={10} />
+                          group
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
+              </motion.button>
+
+              {/* Nested subagents */}
+              {subagentsByParent.get(session.key)?.map((sub) => (
+                <SubagentItem
+                  key={sub.key}
+                  session={sub}
+                  selected={selectedKey === sub.key}
+                  collapsed={collapsed}
+                  onSelect={onSelect}
+                />
+              ))}
+            </div>
+          ))}
+
+          {/* Orphan subagents */}
+          {orphanSubagents.map((sub) => (
+            <SubagentItem
+              key={sub.key}
+              session={sub}
+              selected={selectedKey === sub.key}
+              collapsed={collapsed}
+              onSelect={onSelect}
+            />
           ))}
         </AnimatePresence>
 
-        {sortedSessions.length === 0 && !collapsed && (
+        {sortedParents.length === 0 && orphanSubagents.length === 0 && !collapsed && (
           <div className="p-6 text-center">
             <div className="font-console text-xs text-shell-500">
               <span className="text-crab-600">&gt;</span> no sessions found
