@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useLiveQuery } from '@tanstack/react-db'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Loader2, HardDrive } from 'lucide-react'
+import { ArrowLeft, Loader2, HardDrive, Trash2 } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
 import {
   sessionsCollection,
@@ -14,6 +14,7 @@ import {
   updateSessionStatus,
   clearCollections,
   hydrateFromServer,
+  clearCompletedExecs,
 } from '~/integrations/clawdbot'
 import {
   ActionGraph,
@@ -90,6 +91,31 @@ function MonitorPage() {
   const sessions = sessionsQuery.data ?? []
   const actions = actionsQuery.data ?? []
   const execs = execsQuery.data ?? []
+
+  // Count clearable items (completed/failed execs)
+  const completedCount = useMemo(() => {
+    return execs.filter(e => e.status === 'completed' || e.status === 'failed').length
+  }, [execs])
+
+  // Handler for clearing completed execs
+  const handleClearCompleted = useCallback(() => {
+    const count = clearCompletedExecs()
+    console.log(`[monitor] cleared ${count} completed execs`)
+  }, [])
+
+  // Keyboard shortcut: Ctrl+K to clear completed
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        if (completedCount > 0) {
+          handleClearCompleted()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [completedCount, handleClearCompleted])
 
   // Check connection status and persistence on mount
   useEffect(() => {
@@ -389,6 +415,23 @@ function MonitorPage() {
                 {retryCount > 0 ? `retrying (${retryCount}/${MAX_RETRIES})...` : 'connecting...'}
               </span>
             </motion.div>
+          )}
+
+          {/* Clear Completed button */}
+          {completedCount > 0 && (
+            <button
+              onClick={handleClearCompleted}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all bg-shell-800/50 hover:bg-crab-900/50 hover:border-crab-700/50 border border-transparent group"
+              title={`Clear ${completedCount} completed item${completedCount !== 1 ? 's' : ''}`}
+            >
+              <Trash2
+                size={14}
+                className="text-shell-400 group-hover:text-crab-400 transition-colors"
+              />
+              <span className="font-console text-xs text-shell-400 group-hover:text-crab-400 transition-colors">
+                {completedCount}
+              </span>
+            </button>
           )}
 
           {/* Persistence indicator */}

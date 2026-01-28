@@ -449,6 +449,51 @@ export function clearCollections() {
   }
 }
 
+// Get count of completed/failed execs (for UI badge)
+export function getCompletedExecCount(): number {
+  let count = 0
+  for (const exec of execsCollection.state.values()) {
+    if (exec.status === 'completed' || exec.status === 'failed') {
+      count++
+    }
+  }
+  return count
+}
+
+// Clear completed and failed execs from state
+// Returns number of items cleared
+export function clearCompletedExecs(): number {
+  const toDelete: string[] = []
+  for (const exec of execsCollection.state.values()) {
+    if (exec.status === 'completed' || exec.status === 'failed') {
+      toDelete.push(exec.id)
+    }
+  }
+  for (const id of toDelete) {
+    execsCollection.delete(id)
+  }
+  return toDelete.length
+}
+
+// Clear inactive sessions (idle sessions with no activity for thresholdMs)
+// Returns number of sessions cleared
+export function clearInactiveSessions(thresholdMs: number): number {
+  const now = Date.now()
+  const toDelete: string[] = []
+  for (const session of sessionsCollection.state.values()) {
+    // Only clear idle sessions - preserve thinking/active ones
+    if (session.status !== 'idle') continue
+    const inactiveTime = now - session.lastActivityAt
+    if (inactiveTime >= thresholdMs) {
+      toDelete.push(session.key)
+    }
+  }
+  for (const key of toDelete) {
+    sessionsCollection.delete(key)
+  }
+  return toDelete.length
+}
+
 // Hydrate collections from server persistence
 export function hydrateFromServer(
   sessions: MonitorSession[],
