@@ -1,7 +1,7 @@
-import { memo, useMemo } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { Handle, Position } from '@xyflow/react'
-import { motion } from 'framer-motion'
-import { Users, User, Clock } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Users, User, Clock, Copy, Check } from 'lucide-react'
 import { StatusIndicator } from './StatusIndicator'
 import type { MonitorSession } from '~/integrations/clawdbot'
 
@@ -36,6 +36,8 @@ export const SessionNode = memo(function SessionNode({
   data,
   selected,
 }: SessionNodeProps) {
+  const [copied, setCopied] = useState(false)
+  
   // Detect if this is a subagent session by checking if platform is "subagent" or if key contains "subagent"
   const isSubagent = data.platform === 'subagent' || data.key.includes('subagent') || Boolean(data.spawnedBy)
   const platformIcon = isSubagent ? platformIcons.subagent : (platformIcons[data.platform] ?? '📱')
@@ -45,6 +47,13 @@ export const SessionNode = memo(function SessionNode({
     if (!data.lastActivityAt || data.lastActivityAt <= 0) return null
     return formatRelativeTime(data.lastActivityAt)
   }, [data.lastActivityAt])
+
+  const handleCopyKey = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(data.key)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }, [data.key])
 
   return (
     <motion.div
@@ -73,7 +82,38 @@ export const SessionNode = memo(function SessionNode({
         <span className="font-display text-xs font-semibold uppercase tracking-wide text-gray-200">
           {displayPlatform}
         </span>
-        <StatusIndicator status={data.status} size="sm" />
+        <div className="ml-auto flex items-center gap-1.5">
+          <button
+            onClick={handleCopyKey}
+            className="p-1 rounded hover:bg-shell-700 transition-colors"
+            title={`Copy key: ${data.key}`}
+          >
+            <AnimatePresence mode="wait">
+              {copied ? (
+                <motion.div
+                  key="check"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <Check size={12} className="text-neon-mint" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="copy"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <Copy size={12} className="text-shell-400 hover:text-shell-200" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </button>
+          <StatusIndicator status={data.status} size="sm" />
+        </div>
       </div>
 
       <div className="flex items-center gap-2 mb-2">
