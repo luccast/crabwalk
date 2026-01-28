@@ -58,10 +58,8 @@ function SubagentItem({
 }) {
   return (
     <motion.button
-      layout
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -10 }}
+      initial={false}
+      animate={{ opacity: 1 }}
       onClick={() => onSelect(session.key)}
       className={`w-full text-left border-b border-shell-800/50 transition-all duration-150 group ${
         collapsed ? "p-2" : "py-2 pr-3 pl-6"
@@ -323,18 +321,25 @@ export function SessionList({
                         <span>{subs.length} subagent{subs.length > 1 ? "s" : ""}</span>
                       )}
                     </button>
-                    <AnimatePresence>
-                      {!isGroupCollapsed &&
-                        subs.map((sub) => (
-                          <SubagentItem
-                            key={sub.key}
-                            session={sub}
-                            selected={selectedKey === sub.key}
-                            collapsed={collapsed}
-                            onSelect={onSelect}
-                          />
-                        ))}
-                    </AnimatePresence>
+                    <motion.div
+                      initial={false}
+                      animate={{
+                        height: isGroupCollapsed ? 0 : "auto",
+                        opacity: isGroupCollapsed ? 0 : 1,
+                      }}
+                      transition={{ duration: 0.15, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      {subs.map((sub) => (
+                        <SubagentItem
+                          key={sub.key}
+                          session={sub}
+                          selected={selectedKey === sub.key}
+                          collapsed={collapsed}
+                          onSelect={onSelect}
+                        />
+                      ))}
+                    </motion.div>
                   </>
                 );
               })()}
