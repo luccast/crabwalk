@@ -127,17 +127,17 @@ function capExecOutputs(outputs: MonitorExecOutputChunk[]): {
     capped = capped.slice(-MAX_EXEC_OUTPUT_CHUNKS)
   }
 
-  let totalChars = capped.reduce((sum, chunk) => sum + chunk.text.length, 0)
+  const totalChars = capped.reduce((sum, chunk) => sum + chunk.text.length, 0)
   if (totalChars > MAX_EXEC_OUTPUT_CHARS) {
     truncated = true
-    const trimmed: MonitorExecOutputChunk[] = []
-    for (let i = capped.length - 1; i >= 0; i--) {
-      const chunk = capped[i]!
-      trimmed.push(chunk)
-      totalChars -= chunk.text.length
-      if (totalChars <= MAX_EXEC_OUTPUT_CHARS) break
+    let dropped = 0
+    let startIdx = 0
+    for (let i = 0; i < capped.length; i++) {
+      if (totalChars - dropped <= MAX_EXEC_OUTPUT_CHARS) break
+      dropped += capped[i]!.text.length
+      startIdx = i + 1
     }
-    capped = trimmed.reverse()
+    capped = capped.slice(startIdx)
   }
 
   return { outputs: capped, truncated }
