@@ -230,7 +230,7 @@ export const ExecNode = memo(function ExecNode({ data, selected }: ExecNodeProps
                   </span>
                   <span>{formatTime(chunk.timestamp)}</span>
                 </div>
-                <pre className="font-console text-[11px] whitespace-pre-wrap wrap-break-word">
+                <pre className="font-console text-[11px] whitespace-pre-wrap break-words">
                   {chunk.text}
                 </pre>
               </div>
