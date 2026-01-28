@@ -9,9 +9,11 @@ import {
   type Node,
   type Edge,
   type NodeTypes,
+  type NodeChange,
   MarkerType,
   ReactFlowProvider,
 } from '@xyflow/react'
+import { LayoutGrid } from 'lucide-react'
 import '@xyflow/react/dist/style.css'
 import { SessionNode } from './SessionNode'
 import { ActionNode } from './ActionNode'
@@ -91,6 +93,7 @@ function ActionGraphInner({
 
   const prevNodeIdsRef = useRef<Set<string>>(new Set())
   const nodePositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
+  const pinnedPositions = useRef<Map<string, { x: number; y: number }>>(new Map())
   const animationFrameRef = useRef<number>(undefined)
   const timeoutRef = useRef<NodeJS.Timeout>(undefined)
 
@@ -370,7 +373,25 @@ function ActionGraphInner({
     return [...layoutedNodes, chaserNode]
   }, [])
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+  const [nodes, setNodes, rawOnNodesChange] = useNodesState(initialNodes)
+
+  // Intercept node changes to detect drag-end and pin positions
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      for (const change of changes) {
+        if (
+          change.type === 'position' &&
+          'dragging' in change &&
+          change.dragging === false &&
+          change.position
+        ) {
+          pinnedPositions.current.set(change.id, { ...change.position })
+        }
+      }
+      rawOnNodesChange(changes)
+    },
+    [rawOnNodesChange]
+  )
 
   // Handle crab click - jump animation (defined after setNodes)
   const handleCrabClick = useCallback(() => {
@@ -642,16 +663,22 @@ function ActionGraphInner({
     }
   }, [layoutedNodes, setNodes, handleCrabClick])
 
-  // Update layout nodes when they change (preserve chaser)
+  // Update layout nodes when they change (preserve chaser + pinned positions)
   useEffect(() => {
     setNodes((nds) => {
+      const pinned = pinnedPositions.current
+      const mergedNodes = layoutedNodes.map((n) => {
+        const pin = pinned.get(n.id)
+        return pin ? { ...n, position: pin } : n
+      })
+
       const chaserNode = nds.find((n) => n.id === CHASER_CRAB_ID)
       if (chaserNode) {
-        return [...layoutedNodes, chaserNode]
+        return [...mergedNodes, chaserNode]
       }
       const crab = crabRef.current
       return [
-        ...layoutedNodes,
+        ...mergedNodes,
         {
           id: CHASER_CRAB_ID,
           type: 'chaserCrab',
@@ -669,6 +696,18 @@ function ActionGraphInner({
     })
     setEdges(layoutedEdges)
   }, [layoutedNodes, layoutedEdges, setNodes, setEdges, handleCrabClick])
+
+  // Re-organize: clear pinned positions and re-apply layout
+  const handleReorganize = useCallback(() => {
+    pinnedPositions.current.clear()
+    setNodes((nds) => {
+      const chaserNode = nds.find((n) => n.id === CHASER_CRAB_ID)
+      if (chaserNode) {
+        return [...layoutedNodes, chaserNode]
+      }
+      return [...layoutedNodes]
+    })
+  }, [layoutedNodes, setNodes])
 
   // Cleanup
   useEffect(() => {
@@ -711,6 +750,15 @@ function ActionGraphInner({
         <Controls
           className="bg-shell-900! border-shell-700! shadow-lg! [&>button]:bg-shell-800! [&>button]:border-shell-700! [&>button]:text-gray-300! [&>button:hover]:bg-shell-700! [&>button>svg]:fill-gray-300!"
         />
+        <div className="absolute top-2 right-2 z-10">
+          <button
+            onClick={handleReorganize}
+            title="Re-organize layout"
+            className="p-1.5 rounded bg-shell-800 border border-shell-700 text-gray-300 hover:bg-shell-700 shadow-lg cursor-pointer"
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+        </div>
         <MiniMap
           nodeColor={(node) => {
             if (node.type === 'crab') return '#ef4444'
