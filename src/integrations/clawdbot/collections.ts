@@ -67,10 +67,10 @@ export function addAction(action: MonitorAction) {
     const streamingId = `${action.runId}-stream`
     const existing = actionsCollection.state.get(streamingId)
     if (existing) {
-      // Append content and update sessionKey if we learned it
+      // Replace content (gateway sends cumulative text, not incremental deltas)
       actionsCollection.update(streamingId, (draft) => {
         if (action.content) {
-          draft.content = (draft.content || '') + action.content
+          draft.content = action.content
         }
         draft.seq = action.seq
         draft.timestamp = action.timestamp

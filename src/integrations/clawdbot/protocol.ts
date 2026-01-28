@@ -60,6 +60,7 @@ export interface PresenceEntry {
 }
 
 // Chat events
+// Note: gateway sends cumulative message content with each delta, not incremental chars
 export interface ChatEvent {
   runId: string
   sessionKey: string
