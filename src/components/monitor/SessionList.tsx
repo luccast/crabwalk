@@ -74,7 +74,7 @@ function SubagentItem({
     >
       {collapsed ? (
         <div className="flex flex-col items-center gap-1">
-          <span className="text-sm">🦞</span>
+          <span className="text-sm">🤖</span>
           <StatusIndicator status={session.status} size="sm" />
         </div>
       ) : (
@@ -83,7 +83,7 @@ function SubagentItem({
             subagent
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm">🦞</span>
+            <span className="text-sm">🤖</span>
             <span className="font-console text-[11px] text-shell-400 truncate flex-1 group-hover:text-shell-200">
               {session.recipient}
             </span>
