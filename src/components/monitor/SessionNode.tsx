@@ -67,13 +67,13 @@ export const SessionNode = memo(function SessionNode({
       className={`
         px-4 py-3 rounded-lg border-2 min-w-[180px]
         bg-shell-900 text-white
-        ${selected ? 'border-crab-500' : 'border-shell-600'}
-        ${data.status === 'thinking' ? 'border-neon-peach' : ''}
-        ${isSubagent ? 'border-neon-cyan border-opacity-50' : ''}
+        ${data.status === 'thinking' ? 'border-crab-500 animate-pulse' : selected ? 'border-crab-500' : isSubagent ? 'border-neon-cyan border-opacity-50' : 'border-shell-600'}
         transition-all duration-150 hover:bg-shell-800
       `}
       style={{
-        boxShadow: selected
+        boxShadow: data.status === 'thinking'
+          ? '0 0 24px rgba(239, 68, 68, 0.5), 0 0 8px rgba(239, 68, 68, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3)'
+          : selected
           ? '0 0 20px rgba(239, 68, 68, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3)'
           : isSubagent
           ? '0 0 12px rgba(0, 255, 213, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3)'
