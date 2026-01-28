@@ -155,10 +155,21 @@ function ActionGraphInner({
       ? sessions.filter((s) => s.key === selectedSession)
       : sessions
 
+    // Build a set of visible session keys for parent lookup
+    const visibleSessionKeys = new Set(visibleSessions.map((s) => s.key))
+
     for (const session of visibleSessions) {
+      // If this session was spawned by another session, connect to parent
+      // Otherwise connect to the crab origin node
+      const parentSessionKey = session.spawnedBy
+      const sourceId =
+        parentSessionKey && visibleSessionKeys.has(parentSessionKey)
+          ? `session-${parentSessionKey}`
+          : CRAB_NODE_ID
+
       edges.push({
         id: `e-crab-${session.key}`,
-        source: CRAB_NODE_ID,
+        source: sourceId,
         target: `session-${session.key}`,
         markerEnd: { type: MarkerType.ArrowClosed, color: '#ef4444' },
         style: { stroke: '#ef4444', strokeWidth: 2 },
