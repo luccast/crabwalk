@@ -121,6 +121,21 @@ function ActionGraphInner({
       data: { active: hasActivity },
     })
 
+    // Derive which sessions are "thinking" from latest action type
+    const thinkingSessions = new Set<string>()
+    const latestActionBySession = new Map<string, MonitorAction>()
+    for (const action of visibleActions) {
+      const prev = latestActionBySession.get(action.sessionKey)
+      if (!prev || action.timestamp > prev.timestamp) {
+        latestActionBySession.set(action.sessionKey, action)
+      }
+    }
+    for (const [key, action] of latestActionBySession) {
+      if (action.type === 'start' || action.type === 'streaming') {
+        thinkingSessions.add(key)
+      }
+    }
+
     const visibleSessions = selectedSession
       ? sessions.filter((s) => s.key === selectedSession)
       : sessions
@@ -130,7 +145,7 @@ function ActionGraphInner({
         id: `session-${session.key}`,
         type: 'session',
         position: { x: 0, y: 0 },
-        data: nodeData(session),
+        data: nodeData({ ...session, thinking: thinkingSessions.has(session.key) }),
       })
     }
 

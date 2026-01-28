@@ -6,7 +6,7 @@ import { StatusIndicator } from './StatusIndicator'
 import type { MonitorSession } from '~/integrations/clawdbot'
 
 interface SessionNodeProps {
-  data: MonitorSession
+  data: MonitorSession & { thinking?: boolean }
   selected?: boolean
 }
 
@@ -67,11 +67,11 @@ export const SessionNode = memo(function SessionNode({
       className={`
         px-4 py-3 rounded-lg border-2 min-w-[180px]
         bg-shell-900 text-white
-        ${data.status === 'thinking' ? 'border-crab-500 animate-pulse' : selected ? 'border-crab-500' : isSubagent ? 'border-neon-cyan border-opacity-50' : 'border-shell-600'}
+        ${data.thinking ? 'border-crab-500 animate-pulse' : selected ? 'border-crab-500' : isSubagent ? 'border-neon-cyan border-opacity-50' : 'border-shell-600'}
         transition-all duration-150 hover:bg-shell-800
       `}
       style={{
-        boxShadow: data.status === 'thinking'
+        boxShadow: data.thinking
           ? '0 0 24px rgba(239, 68, 68, 0.5), 0 0 8px rgba(239, 68, 68, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3)'
           : selected
           ? '0 0 20px rgba(239, 68, 68, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3)'
