@@ -1,8 +1,50 @@
 import { createCollection, localOnlyCollectionOptions } from '@tanstack/db'
-import type { MonitorSession, MonitorAction } from './protocol'
+import { parseSessionKey, type MonitorSession, type MonitorAction } from './protocol'
 
 // Track runId → sessionKey mapping (learned from chat events)
 const runSessionMap = new Map<string, string>()
+
+// Track recent activity on parent (non-subagent) sessions for spawn inference
+// Maps sessionKey → lastActivityTimestamp
+const parentSessionActivity = new Map<string, number>()
+
+// Time window for spawn inference - parent must have been active within this window
+const SPAWN_INFERENCE_WINDOW_MS = 5000
+
+function isSubagentSession(key: string): boolean {
+  return key.includes('subagent')
+}
+
+function isParentSession(key: string): boolean {
+  return !isSubagentSession(key) && !key.includes('lifecycle')
+}
+
+// Infer which parent session spawned this subagent based on recent activity
+function inferSpawnedBy(subagentKey: string, timestamp?: number): string | undefined {
+  if (!isSubagentSession(subagentKey)) return undefined
+
+  const now = timestamp ?? Date.now()
+  let bestParent: string | undefined
+  let bestTime = 0
+
+  for (const [parentKey, activityTime] of parentSessionActivity) {
+    // Must be within inference window
+    if (now - activityTime > SPAWN_INFERENCE_WINDOW_MS) continue
+    // Pick most recently active parent
+    if (activityTime > bestTime) {
+      bestTime = activityTime
+      bestParent = parentKey
+    }
+  }
+
+  return bestParent
+}
+
+// Track activity on a parent session
+function trackParentActivity(sessionKey: string, timestamp?: number) {
+  if (!isParentSession(sessionKey)) return
+  parentSessionActivity.set(sessionKey, timestamp ?? Date.now())
+}
 
 export const sessionsCollection = createCollection(
   localOnlyCollectionOptions<MonitorSession>({
@@ -20,13 +62,32 @@ export const actionsCollection = createCollection(
 
 // Helper to update or insert session
 export function upsertSession(session: MonitorSession) {
+  // Track activity on parent sessions
+  if (isParentSession(session.key)) {
+    trackParentActivity(session.key, session.lastActivityAt)
+  }
+
   const existing = sessionsCollection.state.get(session.key)
+
   if (existing) {
+    // Preserve existing spawnedBy - never overwrite once set
+    const preservedSpawnedBy = existing.spawnedBy
     sessionsCollection.update(session.key, (draft) => {
       Object.assign(draft, session)
+      if (preservedSpawnedBy) {
+        draft.spawnedBy = preservedSpawnedBy
+      }
     })
   } else {
-    sessionsCollection.insert(session)
+    // New session - infer spawnedBy for subagents if not provided
+    let spawnedBy = session.spawnedBy
+    if (!spawnedBy && isSubagentSession(session.key)) {
+      spawnedBy = inferSpawnedBy(session.key, session.lastActivityAt)
+    }
+    sessionsCollection.insert({
+      ...session,
+      spawnedBy,
+    })
   }
 }
 
@@ -40,6 +101,11 @@ export function addAction(action: MonitorAction) {
   // Learn runId → sessionKey mapping from actions with real session keys
   if (action.sessionKey && !action.sessionKey.includes('lifecycle')) {
     runSessionMap.set(action.runId, action.sessionKey)
+
+    // Track activity on parent sessions for spawn inference
+    if (isParentSession(action.sessionKey)) {
+      trackParentActivity(action.sessionKey, action.timestamp)
+    }
   }
 
   // Resolve sessionKey: use mapped value if action has lifecycle/invalid key
@@ -130,11 +196,32 @@ export function updateSessionStatus(
   key: string,
   status: MonitorSession['status']
 ) {
+  const now = Date.now()
+
+  // Track activity on parent sessions
+  if (isParentSession(key)) {
+    trackParentActivity(key, now)
+  }
+
   const session = sessionsCollection.state.get(key)
   if (session) {
     sessionsCollection.update(key, (draft) => {
       draft.status = status
-      draft.lastActivityAt = Date.now()
+      draft.lastActivityAt = now
+    })
+  } else if (isSubagentSession(key)) {
+    // New subagent session via status update - create with inferred parent
+    const spawnedBy = inferSpawnedBy(key, now)
+    const parsed = parseSessionKey(key)
+    sessionsCollection.insert({
+      key,
+      agentId: parsed.agentId,
+      platform: parsed.platform,
+      recipient: parsed.recipient,
+      isGroup: parsed.isGroup,
+      lastActivityAt: now,
+      status,
+      spawnedBy,
     })
   }
 }
@@ -151,6 +238,8 @@ export function updateSession(key: string, update: Partial<MonitorSession>) {
 
 // Clear all data
 export function clearCollections() {
+  runSessionMap.clear()
+  parentSessionActivity.clear()
   for (const session of sessionsCollection.state.values()) {
     sessionsCollection.delete(session.key)
   }
@@ -167,14 +256,33 @@ export function hydrateFromServer(
   // First clear existing data
   clearCollections()
 
-  // Insert all sessions
-  for (const session of sessions) {
-    sessionsCollection.insert(session)
+  // Replay actions first to build parent activity history
+  const sortedActions = [...actions].sort((a, b) => a.timestamp - b.timestamp)
+  for (const action of sortedActions) {
+    // Track parent activity without inserting actions yet
+    if (action.sessionKey && isParentSession(action.sessionKey)) {
+      trackParentActivity(action.sessionKey, action.timestamp)
+    }
   }
 
-  // Replay actions through addAction to apply aggregation logic
-  // Sort by timestamp to ensure correct order
-  const sortedActions = [...actions].sort((a, b) => a.timestamp - b.timestamp)
+  // Also track parent sessions by their lastActivityAt
+  for (const session of sessions) {
+    if (isParentSession(session.key)) {
+      trackParentActivity(session.key, session.lastActivityAt)
+    }
+  }
+
+  // Now insert all sessions - subagents will get inferred spawnedBy
+  for (const session of sessions) {
+    if (isSubagentSession(session.key)) {
+      const spawnedBy = session.spawnedBy || inferSpawnedBy(session.key, session.lastActivityAt)
+      sessionsCollection.insert({ ...session, spawnedBy })
+    } else {
+      sessionsCollection.insert(session)
+    }
+  }
+
+  // Replay actions through addAction for aggregation
   for (const action of sortedActions) {
     addAction(action)
   }

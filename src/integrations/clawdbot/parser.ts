@@ -18,6 +18,7 @@ export function sessionInfoToMonitor(info: SessionInfo): MonitorSession {
     isGroup: parsed.isGroup,
     lastActivityAt: info.lastActivityAt,
     status: 'idle',
+    spawnedBy: info.spawnedBy,
   }
 }
 

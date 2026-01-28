@@ -100,6 +100,8 @@ export interface SessionInfo {
   lastActivityAt: number
   messageCount: number
   lastMessage?: unknown
+  /** Session key of the parent session that spawned this subagent session. */
+  spawnedBy?: string
 }
 
 // App-level types
@@ -111,6 +113,8 @@ export interface MonitorSession {
   isGroup: boolean
   lastActivityAt: number
   status: 'idle' | 'active' | 'thinking'
+  /** Session key of the parent session that spawned this subagent session. */
+  spawnedBy?: string
 }
 
 export interface MonitorAction {
