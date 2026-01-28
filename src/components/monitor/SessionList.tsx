@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, ChevronLeft, ChevronRight, Github } from "lucide-react";
+import { Users, ChevronLeft, ChevronRight, ChevronDown, Github } from "lucide-react";
 import { StatusIndicator } from "./StatusIndicator";
 import type { MonitorSession } from "~/integrations/clawdbot";
 
@@ -104,6 +104,7 @@ export function SessionList({
 }: SessionListProps) {
   const [filter, setFilter] = useState("");
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const parentSessions = sessions.filter((s) => !isSubagent(s));
   const platforms = [...new Set(parentSessions.map((s) => s.platform))];
@@ -294,15 +295,49 @@ export function SessionList({
               </motion.button>
 
               {/* Nested subagents */}
-              {subagentsByParent.get(session.key)?.map((sub) => (
-                <SubagentItem
-                  key={sub.key}
-                  session={sub}
-                  selected={selectedKey === sub.key}
-                  collapsed={collapsed}
-                  onSelect={onSelect}
-                />
-              ))}
+              {(() => {
+                const subs = subagentsByParent.get(session.key);
+                if (!subs?.length) return null;
+                const isGroupCollapsed = collapsedGroups.has(session.key);
+                return (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCollapsedGroups((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(session.key)) next.delete(session.key);
+                          else next.add(session.key);
+                          return next;
+                        });
+                      }}
+                      className={`w-full text-left border-b border-shell-800/50 transition-all ${
+                        collapsed ? "p-1.5" : "px-4 py-1"
+                      } flex items-center gap-1.5 text-[10px] font-display uppercase tracking-widest text-shell-500 hover:text-shell-300 hover:bg-shell-800/30`}
+                    >
+                      <ChevronDown
+                        size={10}
+                        className={`transition-transform ${isGroupCollapsed ? "-rotate-90" : ""}`}
+                      />
+                      {!collapsed && (
+                        <span>{subs.length} subagent{subs.length > 1 ? "s" : ""}</span>
+                      )}
+                    </button>
+                    <AnimatePresence>
+                      {!isGroupCollapsed &&
+                        subs.map((sub) => (
+                          <SubagentItem
+                            key={sub.key}
+                            session={sub}
+                            selected={selectedKey === sub.key}
+                            collapsed={collapsed}
+                            onSelect={onSelect}
+                          />
+                        ))}
+                    </AnimatePresence>
+                  </>
+                );
+              })()}
             </div>
           ))}
 
