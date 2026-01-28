@@ -85,7 +85,7 @@ function SubagentItem({
           <div className="flex items-center gap-2">
             <span className="text-sm">🦞</span>
             <span className="font-console text-[11px] text-shell-400 truncate flex-1 group-hover:text-shell-200">
-              {session.agentId}
+              {session.recipient}
             </span>
             <StatusIndicator status={session.status} size="sm" />
           </div>
