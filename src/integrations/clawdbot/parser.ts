@@ -128,7 +128,8 @@ export function agentEventToAction(event: AgentEvent): MonitorAction {
   } else if (data.type === 'tool_result') {
     type = 'tool_result'
     content = String(data.content || '')
-  } else if (data.type === 'text') {
+  } else if (data.type === 'text' || typeof data.text === 'string') {
+    // Handle both { type: 'text', text: '...' } and assistant stream { text: '...', delta: '...' }
     type = 'streaming'
     content = String(data.text || '')
   }
@@ -190,7 +191,8 @@ export function parseEventFrame(
     }
 
     // Process assistant stream for streaming content
-    if (agentEvent.stream === 'assistant' && agentEvent.data?.type === 'text') {
+    // Assistant events have { text: "cumulative", delta: "incremental" } structure
+    if (agentEvent.stream === 'assistant' && typeof agentEvent.data?.text === 'string') {
       return {
         action: agentEventToAction(agentEvent),
         session: agentEvent.sessionKey ? {
