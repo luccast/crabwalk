@@ -194,10 +194,9 @@ export function upsertSession(session: MonitorSession) {
 }
 
 // Helper to add or update action
-// Aggregation strategy per run:
-// - start: one node per runId (appears immediately)
-// - streaming: aggregate all deltas into one node (content updates)
-// - complete: updates streaming node with final state & metadata
+// Unified node lifecycle per runId:
+// - start/streaming/complete/error/aborted all update the same node
+// - Node type reflects current state in the lifecycle
 // - tool_call/tool_result: separate nodes
 export function addAction(action: MonitorAction) {
   // Learn runId → sessionKey mapping from actions with real session keys
@@ -220,77 +219,49 @@ export function addAction(action: MonitorAction) {
     sessionKey = runSessionMap.get(action.runId) || sessionKey
   }
 
-  // Handle 'start' type - create dedicated start node
-  if (action.type === 'start') {
-    const startId = `${action.runId}-start`
-    const existing = actionsCollection.state.get(startId)
-    if (!existing) {
-      actionsCollection.insert({
-        ...action,
-        id: startId,
-        sessionKey,
-      })
-    }
-    return
-  }
+  // Unified node lifecycle: start → streaming → complete/error/aborted
+  // All states for the same runId share one node ID
+  const actionNodeId = `${action.runId}-action`
 
-  // For streaming, aggregate into single node per runId
-  if (action.type === 'streaming') {
-    const streamingId = `${action.runId}-stream`
-    const existing = actionsCollection.state.get(streamingId)
+  // Handle start, streaming, complete, error, aborted - all update the same node
+  if (['start', 'streaming', 'complete', 'error', 'aborted'].includes(action.type)) {
+    const existing = actionsCollection.state.get(actionNodeId)
+
     if (existing) {
-      // Replace content (gateway sends cumulative text, not incremental deltas)
-      actionsCollection.update(streamingId, (draft) => {
-        if (action.content) {
-          draft.content = action.content
-        }
-        draft.seq = action.seq
-        draft.timestamp = action.timestamp
-        if (sessionKey && sessionKey !== 'lifecycle') {
-          draft.sessionKey = sessionKey
-        }
-      })
-    } else {
-      // Create new streaming action
-      actionsCollection.insert({
-        ...action,
-        id: streamingId,
-        sessionKey,
-      })
-    }
-    return
-  }
-
-  // For complete/error/aborted, update the streaming action
-  if (action.type === 'complete' || action.type === 'error' || action.type === 'aborted') {
-    const streamingId = `${action.runId}-stream`
-    const streaming = actionsCollection.state.get(streamingId)
-    if (streaming) {
-      actionsCollection.update(streamingId, (draft) => {
+      actionsCollection.update(actionNodeId, (draft) => {
+        // Always update type to reflect current state
         draft.type = action.type
         draft.seq = action.seq
         draft.timestamp = action.timestamp
+
         if (sessionKey && sessionKey !== 'lifecycle') {
           draft.sessionKey = sessionKey
         }
-        // Copy final content from complete event if present
+
+        // Update content if present
         if (action.content) {
           draft.content = action.content
         }
-        // Copy metadata from complete event
+
+        // Copy metadata from complete/error events
         if (action.inputTokens !== undefined) draft.inputTokens = action.inputTokens
         if (action.outputTokens !== undefined) draft.outputTokens = action.outputTokens
         if (action.stopReason) draft.stopReason = action.stopReason
         if (action.endedAt) draft.endedAt = action.endedAt
+
         // Calculate duration if we have both timestamps
         if (draft.startedAt && action.endedAt) {
           draft.duration = action.endedAt - draft.startedAt
         }
       })
-      return
+    } else {
+      // Create new action node
+      actionsCollection.insert({
+        ...action,
+        id: actionNodeId,
+        sessionKey,
+      })
     }
-    // No streaming action found, create as-is with complete state
-    actionsCollection.insert({ ...action, sessionKey, id: `${action.runId}-complete` })
     return
   }
 
