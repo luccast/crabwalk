@@ -27,27 +27,31 @@ const NODE_DIMENSIONS = {
 }
 
 // Layout constants - generous spacing for clarity
-const COLUMN_GAP = 400        // Horizontal gap between root sessions (horizontal mode)
-const ROW_GAP = 80            // Vertical gap between items
+const COLUMN_GAP = 400        // Horizontal gap between session columns
+const ROW_GAP = 80            // Vertical gap between items in a column
+const SPAWN_OFFSET = 60       // Extra Y offset when spawning to right
 const CRAB_OFFSET = { x: -120, y: -100 }
-const MIN_SESSION_GAP = 120   // Minimum gap between root sessions
+const MIN_SESSION_GAP = 120   // Minimum vertical gap between sessions in same column
+const ROOT_HORIZONTAL_GAP = 0 // Gap between root sessions in horizontal mode
 
-interface SessionTree {
-  session: MonitorSession
+interface SessionColumn {
+  sessionKey: string
+  columnIndex: number
+  rootIndex: number  // Which root tree this session belongs to (for horizontal mode)
+  spawnY: number  // Y position where this session was spawned from parent
   items: Array<{
     nodeId: string
     type: 'session' | 'action' | 'exec'
     timestamp: number
     data: unknown
   }>
-  children: SessionTree[]
 }
 
 /**
  * Layout algorithm:
- * - Horizontal (LR): Root sessions arranged left-to-right, content flows down
- * - Vertical (TB): Root sessions stacked top-to-bottom, content flows down
- * - Subagents and nodes always stack vertically under their parent session
+ * - Vertical (TB): All roots in column 0, subagents spawn to the right based on depth
+ * - Horizontal (LR): Each root gets its own column group, subagents spawn further right
+ * - Subagents positioned at the Y-level where they were spawned (timeline style)
  */
 export function layoutGraph(
   nodes: Node[],
@@ -57,6 +61,7 @@ export function layoutGraph(
   const direction = options.direction ?? 'LR'
   const isHorizontal = direction === 'LR' || direction === 'RL'
 
+  // Build session hierarchy and columns
   const sessions = nodes
     .filter((n) => n.type === 'session')
     .map((n) => n.data as unknown as MonitorSession)
@@ -71,7 +76,70 @@ export function layoutGraph(
 
   const crabNode = nodes.find((n) => n.type === 'crab')
 
-  // Group actions by session
+  // Build session column map - which column is each session in?
+  const sessionColumns = new Map<string, SessionColumn>()
+  const columnOccupancy = new Map<number, number>() // columnIndex -> maxY used
+
+  // Find root sessions and build root index map
+  const rootSessions: MonitorSession[] = []
+  const sessionToRoot = new Map<string, number>() // sessionKey -> rootIndex
+
+  // First identify all roots
+  for (const session of sessions) {
+    if (!session.spawnedBy || !sessions.find(s => s.key === session.spawnedBy)) {
+      rootSessions.push(session)
+    }
+  }
+  rootSessions.sort((a, b) => (a.lastActivityAt ?? 0) - (b.lastActivityAt ?? 0))
+
+  // Assign root index to each root
+  rootSessions.forEach((root, idx) => sessionToRoot.set(root.key, idx))
+
+  // Find root for any session by walking up the spawn chain
+  const findRootIndex = (sessionKey: string, visited = new Set<string>()): number => {
+    if (visited.has(sessionKey)) return 0
+    visited.add(sessionKey)
+
+    if (sessionToRoot.has(sessionKey)) {
+      return sessionToRoot.get(sessionKey)!
+    }
+
+    const session = sessions.find((s) => s.key === sessionKey)
+    if (!session || !session.spawnedBy) return 0
+
+    const rootIdx = findRootIndex(session.spawnedBy, visited)
+    sessionToRoot.set(sessionKey, rootIdx)
+    return rootIdx
+  }
+
+  // Determine column for each session based on spawn hierarchy
+  const getSessionDepth = (sessionKey: string, visited = new Set<string>()): number => {
+    if (visited.has(sessionKey)) return 0
+    visited.add(sessionKey)
+
+    const session = sessions.find((s) => s.key === sessionKey)
+    if (!session) return 0
+
+    if (session.spawnedBy) {
+      return getSessionDepth(session.spawnedBy, visited) + 1
+    }
+    return 0
+  }
+
+  // Assign columns to all sessions
+  for (const session of sessions) {
+    const depth = getSessionDepth(session.key)
+    const rootIndex = findRootIndex(session.key)
+    sessionColumns.set(session.key, {
+      sessionKey: session.key,
+      columnIndex: depth,
+      rootIndex,
+      spawnY: 0,
+      items: [],
+    })
+  }
+
+  // Group actions by session and sort by timestamp
   const actionsBySession = new Map<string, typeof actions>()
   for (const action of actions) {
     const sessionKey = action.data.sessionKey
@@ -99,30 +167,13 @@ export function layoutGraph(
     execsBySession.set(key, list)
   }
 
-  // Build session tree
-  const sessionMap = new Map(sessions.map((s) => [s.key, s]))
-  const childrenMap = new Map<string, MonitorSession[]>()
-  const rootSessions: MonitorSession[] = []
-
+  // Build items list for each session (session node + actions + execs)
   for (const session of sessions) {
-    if (session.spawnedBy && sessionMap.has(session.spawnedBy)) {
-      const siblings = childrenMap.get(session.spawnedBy) ?? []
-      siblings.push(session)
-      childrenMap.set(session.spawnedBy, siblings)
-    } else {
-      rootSessions.push(session)
-    }
-  }
+    const col = sessionColumns.get(session.key)
+    if (!col) continue
 
-  // Sort roots by activity time
-  rootSessions.sort((a, b) => (a.lastActivityAt ?? 0) - (b.lastActivityAt ?? 0))
-
-  // Build tree recursively
-  const buildTree = (session: MonitorSession): SessionTree => {
-    const items: SessionTree['items'] = []
-
-    // Session node first
-    items.push({
+    // Add session node itself
+    col.items.push({
       nodeId: `session-${session.key}`,
       type: 'session',
       timestamp: session.lastActivityAt ?? 0,
@@ -130,8 +181,9 @@ export function layoutGraph(
     })
 
     // Add actions
-    for (const action of actionsBySession.get(session.key) ?? []) {
-      items.push({
+    const sessionActions = actionsBySession.get(session.key) ?? []
+    for (const action of sessionActions) {
+      col.items.push({
         nodeId: `action-${action.id}`,
         type: 'action',
         timestamp: action.data.timestamp,
@@ -140,8 +192,9 @@ export function layoutGraph(
     }
 
     // Add execs
-    for (const exec of execsBySession.get(session.key) ?? []) {
-      items.push({
+    const sessionExecs = execsBySession.get(session.key) ?? []
+    for (const exec of sessionExecs) {
+      col.items.push({
         nodeId: `exec-${exec.id}`,
         type: 'exec',
         timestamp: exec.data.startedAt,
@@ -149,24 +202,45 @@ export function layoutGraph(
       })
     }
 
-    // Sort by timestamp (session first)
-    items.sort((a, b) => {
+    // Sort all items by timestamp (session node first since it's the start)
+    col.items.sort((a, b) => {
       if (a.type === 'session') return -1
       if (b.type === 'session') return 1
       return a.timestamp - b.timestamp
     })
-
-    // Build children trees
-    const children = (childrenMap.get(session.key) ?? [])
-      .sort((a, b) => (a.lastActivityAt ?? 0) - (b.lastActivityAt ?? 0))
-      .map(buildTree)
-
-    return { session, items, children }
   }
 
-  const trees = rootSessions.map(buildTree)
+  // Calculate spawn Y positions for child sessions
+  // When a session is spawned, find the Y position of the parent at that time
+  for (const session of sessions) {
+    if (!session.spawnedBy) continue
 
-  // Position nodes
+    const parentCol = sessionColumns.get(session.spawnedBy)
+    const childCol = sessionColumns.get(session.key)
+    if (!parentCol || !childCol) continue
+
+    // Find the approximate position in parent where spawn happened
+    // Use the child's creation time (approximated by first action time or session activity)
+    const childActions = actionsBySession.get(session.key) ?? []
+    const childCreationTime = childActions[0]?.data.timestamp ?? session.lastActivityAt ?? Date.now()
+
+    // Count how many items in parent were before this spawn
+    let parentItemsBeforeSpawn = 0
+    for (const item of parentCol.items) {
+      if (item.type === 'session') {
+        parentItemsBeforeSpawn++
+        continue
+      }
+      if (item.timestamp <= childCreationTime) {
+        parentItemsBeforeSpawn++
+      }
+    }
+
+    // Calculate Y based on parent's item count
+    childCol.spawnY = parentItemsBeforeSpawn * (NODE_DIMENSIONS.action.height + ROW_GAP) + SPAWN_OFFSET
+  }
+
+  // Position all nodes
   const positionedNodes: Node[] = []
   const positionedNodeIds = new Set<string>()
 
@@ -179,51 +253,101 @@ export function layoutGraph(
     positionedNodeIds.add(crabNode.id)
   }
 
-  // Layout a tree, returns the total height used
-  const layoutTree = (tree: SessionTree, startX: number, startY: number): number => {
-    let currentY = startY
+  // Track column usage for collision avoidance
+  // In horizontal mode, we track per (rootIndex, columnIndex)
+  // In vertical mode, we track per columnIndex only
+  const columnRanges = new Map<string, Array<{ startY: number; endY: number }>>()
 
-    // Position all items in this session vertically
-    for (const item of tree.items) {
+  const getColumnKey = (rootIndex: number, columnIndex: number): string => {
+    return isHorizontal ? `${rootIndex}-${columnIndex}` : `${columnIndex}`
+  }
+
+  // Get X position for a session
+  const getColumnX = (rootIndex: number, columnIndex: number): number => {
+    if (isHorizontal) {
+      // Each root tree gets its own horizontal space
+      // Root at rootIndex * (maxDepth * COLUMN_GAP + ROOT_HORIZONTAL_GAP)
+      // Plus columnIndex * COLUMN_GAP for depth within tree
+      const maxDepth = Math.max(...Array.from(sessionColumns.values()).map(c => c.columnIndex)) + 1
+      const treeWidth = maxDepth * COLUMN_GAP
+      return rootIndex * (treeWidth + ROOT_HORIZONTAL_GAP) + columnIndex * COLUMN_GAP
+    } else {
+      // Vertical: all sessions at same depth share X
+      return columnIndex * COLUMN_GAP
+    }
+  }
+
+  // Adjust spawn Y to avoid collisions with existing sessions in same column
+  const adjustSpawnY = (rootIndex: number, columnIndex: number, desiredY: number, itemCount: number): number => {
+    const key = getColumnKey(rootIndex, columnIndex)
+    const ranges = columnRanges.get(key) ?? []
+    const estimatedHeight = itemCount * (NODE_DIMENSIONS.action.height + ROW_GAP) + MIN_SESSION_GAP
+
+    let adjustedY = desiredY
+
+    // Check for overlaps and shift down if needed
+    for (const range of ranges) {
+      if (adjustedY < range.endY && (adjustedY + estimatedHeight) > range.startY) {
+        adjustedY = range.endY + MIN_SESSION_GAP
+      }
+    }
+
+    // Record our range
+    ranges.push({ startY: adjustedY, endY: adjustedY + estimatedHeight })
+    columnRanges.set(key, ranges)
+
+    return adjustedY
+  }
+
+  // Sort sessions by column index (process column 0 first, then 1, etc.)
+  // This ensures parent sessions are positioned before children
+  const sortedSessionKeys = Array.from(sessionColumns.keys()).sort((a, b) => {
+    const colA = sessionColumns.get(a)!
+    const colB = sessionColumns.get(b)!
+    // First by root index (in horizontal mode)
+    if (isHorizontal && colA.rootIndex !== colB.rootIndex) {
+      return colA.rootIndex - colB.rootIndex
+    }
+    // Then by column index (depth)
+    if (colA.columnIndex !== colB.columnIndex) {
+      return colA.columnIndex - colB.columnIndex
+    }
+    // Within same column, sort by spawn Y (earlier spawns first)
+    return colA.spawnY - colB.spawnY
+  })
+
+  // Position each session's column
+  for (const sessionKey of sortedSessionKeys) {
+    const col = sessionColumns.get(sessionKey)!
+    const columnX = getColumnX(col.rootIndex, col.columnIndex)
+
+    // Adjust Y position to avoid collisions with other sessions in same column
+    const adjustedY = adjustSpawnY(col.rootIndex, col.columnIndex, col.spawnY, col.items.length)
+    let currentY = adjustedY
+
+    for (const item of col.items) {
       const dims = NODE_DIMENSIONS[item.type]
+
       positionedNodes.push({
         id: item.nodeId,
         type: item.type,
-        position: { x: startX, y: currentY },
+        position: { x: columnX, y: currentY },
         data: nodeData(item.data),
       })
       positionedNodeIds.add(item.nodeId)
+
       currentY += dims.height + ROW_GAP
     }
 
-    // Layout children (subagents) vertically below, indented
-    for (const child of tree.children) {
-      currentY = layoutTree(child, startX + 40, currentY)
-    }
-
-    return currentY
+    // Track max Y for this column
+    columnOccupancy.set(col.columnIndex, Math.max(
+      columnOccupancy.get(col.columnIndex) ?? 0,
+      currentY
+    ))
   }
 
-  // Layout all root trees
-  let currentX = 0
-  let currentY = 0
-
-  for (const tree of trees) {
-    if (isHorizontal) {
-      // Horizontal: each root gets its own column
-      const treeHeight = layoutTree(tree, currentX, 0)
-      currentX += COLUMN_GAP
-      // Track max height for orphans
-      currentY = Math.max(currentY, treeHeight)
-    } else {
-      // Vertical: roots stack vertically
-      currentY = layoutTree(tree, 0, currentY)
-      currentY += MIN_SESSION_GAP
-    }
-  }
-
-  // Handle orphan nodes
-  let orphanY = currentY + 100
+  // Handle orphan nodes (actions/execs without a session)
+  let orphanY = Math.max(...Array.from(columnOccupancy.values()), 0) + 100
   for (const node of nodes) {
     if (!positionedNodeIds.has(node.id)) {
       const dims = NODE_DIMENSIONS[node.type as keyof typeof NODE_DIMENSIONS] ?? { width: 180, height: 80 }
