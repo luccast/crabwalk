@@ -15,7 +15,8 @@ ENV PORT=3000
 ENV HOST=0.0.0.0
 
 COPY --from=builder /app/.output ./.output
-COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/package*.json ./
+RUN npm ci --omit=dev
 
 EXPOSE 3000
 
