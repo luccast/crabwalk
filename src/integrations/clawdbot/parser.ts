@@ -203,6 +203,18 @@ export function parseEventFrame(
       }
     }
 
+    // Process tool events (tool_use, tool_result)
+    if (agentEvent.data?.type === 'tool_use' || agentEvent.data?.type === 'tool_result') {
+      return {
+        action: agentEventToAction(agentEvent),
+        session: agentEvent.sessionKey ? {
+          key: agentEvent.sessionKey,
+          status: 'thinking',
+          lastActivityAt: Date.now(),
+        } : undefined,
+      }
+    }
+
     return null
   }
 

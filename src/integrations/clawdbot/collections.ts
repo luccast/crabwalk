@@ -209,7 +209,7 @@ export function addAction(action: MonitorAction) {
     }
 
     // Track Task tool calls for spawn inference
-    if (action.type === 'tool_call' && action.toolName === 'Task' && isParentSession(action.sessionKey)) {
+    if (action.type === 'tool_call' && action.toolName?.toLowerCase() === 'task' && isParentSession(action.sessionKey)) {
       recordPendingSpawn(action.sessionKey, action.timestamp)
     }
   }
@@ -478,7 +478,7 @@ export function hydrateFromServer(
 
   // First pass: record Task tool calls to build spawn history
   for (const action of sortedActions) {
-    if (action.type === 'tool_call' && action.toolName === 'Task' &&
+    if (action.type === 'tool_call' && action.toolName?.toLowerCase() === 'task' &&
         action.sessionKey && isParentSession(action.sessionKey)) {
       recordPendingSpawn(action.sessionKey, action.timestamp)
     }
