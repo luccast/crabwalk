@@ -12,12 +12,13 @@ import {
 // Track runId → sessionKey mapping (learned from chat events)
 const runSessionMap = new Map<string, string>()
 
-// Track recent activity on parent (non-subagent) sessions for spawn inference
-// Maps sessionKey → lastActivityTimestamp
-const parentSessionActivity = new Map<string, number>()
+// Track pending spawns: when a parent makes a Task tool_call, record it here
+// Maps nothing specific - just tracks recent Task tool calls with their parent sessionKey
+// Format: { sessionKey, timestamp }
+const pendingSpawns: Array<{ sessionKey: string; timestamp: number }> = []
 
-// Time window for spawn inference - parent must have been active within this window
-const SPAWN_INFERENCE_WINDOW_MS = 5000
+// Time window for spawn inference - spawn must happen within this window of the Task call
+const SPAWN_INFERENCE_WINDOW_MS = 10000
 
 function isSubagentSession(key: string): boolean {
   return key.includes('subagent')
@@ -27,31 +28,36 @@ function isParentSession(key: string): boolean {
   return !isSubagentSession(key) && !key.includes('lifecycle')
 }
 
-// Infer which parent session spawned this subagent based on recent activity
+// Record a pending spawn when a parent session makes a Task tool call
+function recordPendingSpawn(sessionKey: string, timestamp?: number) {
+  if (!isParentSession(sessionKey)) return
+  const ts = timestamp ?? Date.now()
+  // Clean up old entries
+  const cutoff = ts - SPAWN_INFERENCE_WINDOW_MS
+  while (pendingSpawns.length > 0 && pendingSpawns[0]!.timestamp < cutoff) {
+    pendingSpawns.shift()
+  }
+  pendingSpawns.push({ sessionKey, timestamp: ts })
+}
+
+// Infer which parent session spawned this subagent based on pending Task tool calls
 function inferSpawnedBy(subagentKey: string, timestamp?: number): string | undefined {
   if (!isSubagentSession(subagentKey)) return undefined
 
   const now = timestamp ?? Date.now()
-  let bestParent: string | undefined
-  let bestTime = 0
+  const cutoff = now - SPAWN_INFERENCE_WINDOW_MS
 
-  for (const [parentKey, activityTime] of parentSessionActivity) {
-    // Must be within inference window
-    if (now - activityTime > SPAWN_INFERENCE_WINDOW_MS) continue
-    // Pick most recently active parent
-    if (activityTime > bestTime) {
-      bestTime = activityTime
-      bestParent = parentKey
+  // Find the most recent pending spawn within the window
+  for (let i = pendingSpawns.length - 1; i >= 0; i--) {
+    const spawn = pendingSpawns[i]!
+    if (spawn.timestamp >= cutoff) {
+      // Remove this pending spawn (it's been claimed)
+      pendingSpawns.splice(i, 1)
+      return spawn.sessionKey
     }
   }
 
-  return bestParent
-}
-
-// Track activity on a parent session
-function trackParentActivity(sessionKey: string, timestamp?: number) {
-  if (!isParentSession(sessionKey)) return
-  parentSessionActivity.set(sessionKey, timestamp ?? Date.now())
+  return undefined
 }
 
 export const sessionsCollection = createCollection(
@@ -164,11 +170,6 @@ function createPlaceholderExec(event: MonitorExecEvent, sessionKey?: string): Mo
 
 // Helper to update or insert session
 export function upsertSession(session: MonitorSession) {
-  // Track activity on parent sessions
-  if (isParentSession(session.key)) {
-    trackParentActivity(session.key, session.lastActivityAt)
-  }
-
   const existing = sessionsCollection.state.get(session.key)
 
   if (existing) {
@@ -207,9 +208,9 @@ export function addAction(action: MonitorAction) {
       backfillExecSessionKey(action.runId, action.sessionKey)
     }
 
-    // Track activity on parent sessions for spawn inference
-    if (isParentSession(action.sessionKey)) {
-      trackParentActivity(action.sessionKey, action.timestamp)
+    // Track Task tool calls for spawn inference
+    if (action.type === 'tool_call' && action.toolName === 'Task' && isParentSession(action.sessionKey)) {
+      recordPendingSpawn(action.sessionKey, action.timestamp)
     }
   }
 
@@ -370,12 +371,6 @@ export function updateSessionStatus(
   status: MonitorSession['status']
 ) {
   const now = Date.now()
-
-  // Track activity on parent sessions
-  if (isParentSession(key)) {
-    trackParentActivity(key, now)
-  }
-
   const session = sessionsCollection.state.get(key)
   if (session) {
     sessionsCollection.update(key, (draft) => {
@@ -412,7 +407,7 @@ export function updateSession(key: string, update: Partial<MonitorSession>) {
 // Clear all data
 export function clearCollections() {
   runSessionMap.clear()
-  parentSessionActivity.clear()
+  pendingSpawns.length = 0
   for (const session of sessionsCollection.state.values()) {
     sessionsCollection.delete(session.key)
   }
@@ -478,23 +473,18 @@ export function hydrateFromServer(
   // First clear existing data
   clearCollections()
 
-  // Replay actions first to build parent activity history
+  // Sort actions by timestamp for replay
   const sortedActions = [...actions].sort((a, b) => a.timestamp - b.timestamp)
+
+  // First pass: record Task tool calls to build spawn history
   for (const action of sortedActions) {
-    // Track parent activity without inserting actions yet
-    if (action.sessionKey && isParentSession(action.sessionKey)) {
-      trackParentActivity(action.sessionKey, action.timestamp)
+    if (action.type === 'tool_call' && action.toolName === 'Task' &&
+        action.sessionKey && isParentSession(action.sessionKey)) {
+      recordPendingSpawn(action.sessionKey, action.timestamp)
     }
   }
 
-  // Also track parent sessions by their lastActivityAt
-  for (const session of sessions) {
-    if (isParentSession(session.key)) {
-      trackParentActivity(session.key, session.lastActivityAt)
-    }
-  }
-
-  // Now insert all sessions - subagents will get inferred spawnedBy
+  // Insert all sessions - subagents will get inferred spawnedBy from Task tool calls
   for (const session of sessions) {
     if (isSubagentSession(session.key)) {
       const spawnedBy = session.spawnedBy || inferSpawnedBy(session.key, session.lastActivityAt)
