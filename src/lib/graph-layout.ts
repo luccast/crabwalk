@@ -91,7 +91,9 @@ export function layoutGraph(
       rootSessions.push(session)
     }
   }
-  rootSessions.sort((a, b) => (a.lastActivityAt ?? 0) - (b.lastActivityAt ?? 0))
+  // Sort by session key for stable ordering - lastActivityAt changes during streaming
+  // which would cause nodes to swap positions
+  rootSessions.sort((a, b) => a.key.localeCompare(b.key))
 
   // Assign root index to each root
   rootSessions.forEach((root, idx) => sessionToRoot.set(root.key, idx))
