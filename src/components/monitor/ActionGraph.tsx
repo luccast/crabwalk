@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -13,7 +13,7 @@ import {
   MarkerType,
   ReactFlowProvider,
 } from '@xyflow/react'
-import { LayoutGrid } from 'lucide-react'
+import { LayoutGrid, ArrowRightLeft, ArrowUpDown } from 'lucide-react'
 import '@xyflow/react/dist/style.css'
 import { SessionNode } from './SessionNode'
 import { ActionNode } from './ActionNode'
@@ -96,6 +96,9 @@ function ActionGraphInner({
   const pinnedPositions = useRef<Map<string, { x: number; y: number }>>(new Map())
   const animationFrameRef = useRef<number>(undefined)
   const timeoutRef = useRef<NodeJS.Timeout>(undefined)
+
+  // Layout direction: LR = horizontal (sessions spawn right), TB = vertical (sessions stack down)
+  const [layoutDirection, setLayoutDirection] = useState<'LR' | 'TB'>('LR')
 
   // Filter actions for selected session, or show all if none selected
   const visibleActions = useMemo(() => {
@@ -346,13 +349,13 @@ function ActionGraphInner({
       }
     }
     return layoutGraph(rawNodes, rawEdges, {
-      direction: 'TB',
+      direction: layoutDirection,
       nodeWidth: 200,
       nodeHeight: 80,
       rankSep: 60,
       nodeSep: 30,
     })
-  }, [rawNodes, rawEdges])
+  }, [rawNodes, rawEdges, layoutDirection])
 
   // Initial nodes with chaser (click handler added later)
   const initialNodes = useMemo(() => {
@@ -750,7 +753,21 @@ function ActionGraphInner({
         <Controls
           className="bg-shell-900! border-shell-700! shadow-lg! [&>button]:bg-shell-800! [&>button]:border-shell-700! [&>button]:text-gray-300! [&>button:hover]:bg-shell-700! [&>button>svg]:fill-gray-300!"
         />
-        <div className="absolute top-2 right-2 z-10">
+        <div className="absolute top-2 right-2 z-10 flex gap-1.5">
+          <button
+            onClick={() => {
+              setLayoutDirection((d) => (d === 'LR' ? 'TB' : 'LR'))
+              pinnedPositions.current.clear()
+            }}
+            title={layoutDirection === 'LR' ? 'Stack sessions vertically' : 'Spread sessions horizontally'}
+            className="p-1.5 rounded bg-shell-800 border border-shell-700 text-gray-300 hover:bg-shell-700 shadow-lg cursor-pointer"
+          >
+            {layoutDirection === 'LR' ? (
+              <ArrowRightLeft className="w-4 h-4" />
+            ) : (
+              <ArrowUpDown className="w-4 h-4" />
+            )}
+          </button>
           <button
             onClick={handleReorganize}
             title="Re-organize layout"
