@@ -10,7 +10,6 @@ import {
   MessageSquare,
   MessageCircle,
   Bot,
-  Play,
 } from 'lucide-react'
 import type { MonitorAction } from '~/integrations/clawdbot'
 
@@ -39,12 +38,11 @@ const stateConfig: Record<
   }
 > = {
   start: {
-    icon: Play,
-    borderColor: 'border-neon-mint',
-    bgColor: 'bg-neon-mint/10',
-    iconColor: 'text-neon-mint',
-    animate: false,
-    label: 'Run Started',
+    icon: Loader2,
+    borderColor: 'border-neon-cyan',
+    bgColor: 'bg-neon-cyan/10',
+    iconColor: 'text-neon-cyan',
+    animate: true,
   },
   streaming: {
     icon: Loader2,
