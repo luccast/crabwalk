@@ -113,11 +113,11 @@ export function agentEventToAction(event: AgentEvent): MonitorAction {
   if (event.stream === 'lifecycle') {
     if (data.phase === 'start') {
       type = 'start'
-      content = 'Run started'
+      // No placeholder content - will show "Run Started" label from UI
       startedAt = typeof data.startedAt === 'number' ? data.startedAt : event.ts
     } else if (data.phase === 'end') {
       type = 'complete'
-      content = 'Run completed'
+      // No placeholder content - preserve streamed content from assistant events
       endedAt = typeof data.endedAt === 'number' ? data.endedAt : event.ts
     }
   } else if (data.type === 'tool_use') {
@@ -177,18 +177,25 @@ export function parseEventFrame(
   if (frame.event === 'agent' && frame.payload) {
     const agentEvent = frame.payload as AgentEvent
 
-    // Skip assistant stream - it duplicates chat events
-    if (agentEvent.stream === 'assistant') {
-      return null
-    }
-
-    // Only process lifecycle events (start/end markers)
+    // Process lifecycle events (start/end markers)
     if (agentEvent.stream === 'lifecycle') {
       return {
         action: agentEventToAction(agentEvent),
         session: agentEvent.sessionKey ? {
           key: agentEvent.sessionKey,
           status: agentEvent.data?.phase === 'start' ? 'thinking' : 'active',
+          lastActivityAt: Date.now(),
+        } : undefined,
+      }
+    }
+
+    // Process assistant stream for streaming content
+    if (agentEvent.stream === 'assistant' && agentEvent.data?.type === 'text') {
+      return {
+        action: agentEventToAction(agentEvent),
+        session: agentEvent.sessionKey ? {
+          key: agentEvent.sessionKey,
+          status: 'thinking',
           lastActivityAt: Date.now(),
         } : undefined,
       }
