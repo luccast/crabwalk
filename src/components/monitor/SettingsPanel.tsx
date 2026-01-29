@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Settings, X, History, Wifi, WifiOff, RefreshCw, Terminal, Download, Trash2, Database, HardDrive, Play, Square } from 'lucide-react'
+import { Settings, X, Wifi, WifiOff, RefreshCw, Terminal, Download, Trash2, Database, HardDrive, Play, Square, CloudDownload } from 'lucide-react'
 import { version } from '../../../package.json'
 
 interface SettingsPanelProps {
@@ -138,31 +138,6 @@ export function SettingsPanel({
                   </div>
                 </div>
 
-                {/* Historical mode toggle */}
-                <div className="panel-retro p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <History size={18} className="text-shell-500" />
-                    <span className="font-display text-sm font-medium text-gray-200 uppercase tracking-wide">
-                      Historical Mode
-                    </span>
-                  </div>
-
-                  <p className="font-console text-[10px] text-shell-500 mb-4">
-                    <span className="text-crab-600">&gt;</span> load past sessions on connect
-                  </p>
-
-                  <button
-                    onClick={() => onHistoricalModeChange(!historicalMode)}
-                    className={`w-full px-4 py-2 font-display text-xs uppercase tracking-wide rounded-lg transition-all ${
-                      historicalMode
-                        ? 'bg-crab-600 text-white box-glow-red'
-                        : 'bg-shell-800 text-gray-400 hover:bg-shell-700'
-                    }`}
-                  >
-                    {historicalMode ? 'Enabled' : 'Disabled'}
-                  </button>
-                </div>
-
                 {/* Debug mode toggle */}
                 <div className="panel-retro p-4">
                   <div className="flex items-center gap-3 mb-2">
@@ -244,6 +219,31 @@ export function SettingsPanel({
                     <Trash2 size={12} />
                     Clear Stored Data
                   </button>
+
+                  {/* Gateway sync sub-option */}
+                  <div className="mt-4 pt-4 border-t border-shell-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <CloudDownload size={14} className="text-shell-500" />
+                        <span className="font-display text-xs text-gray-300 uppercase tracking-wide">
+                          Sync Gateway (24h)
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => onHistoricalModeChange(!historicalMode)}
+                        className={`px-3 py-1 font-display text-[10px] uppercase tracking-wide rounded transition-all ${
+                          historicalMode
+                            ? 'bg-neon-cyan/20 text-neon-cyan'
+                            : 'bg-shell-800 text-gray-500 hover:bg-shell-700'
+                        }`}
+                      >
+                        {historicalMode ? 'On' : 'Off'}
+                      </button>
+                    </div>
+                    <p className="font-console text-[10px] text-shell-500">
+                      <span className="text-crab-600">&gt;</span> fetch 24h of sessions from gateway on refresh
+                    </p>
+                  </div>
                 </div>
 
                 {/* Log collection */}
