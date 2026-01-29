@@ -31,6 +31,7 @@ const COLUMN_GAP = 400        // Horizontal gap between session columns
 const ROW_GAP = 80            // Vertical gap between items in a column
 const SPAWN_OFFSET = 60       // Extra Y offset when spawning to right
 const CRAB_OFFSET = { x: -120, y: -100 }
+const ROOT_START_Y = 200      // Vertical offset from crab to first root session
 const MIN_SESSION_GAP = 120   // Minimum vertical gap between sessions in same column
 const ROOT_HORIZONTAL_GAP = 0 // Gap between root sessions in horizontal mode
 
@@ -134,7 +135,7 @@ export function layoutGraph(
       sessionKey: session.key,
       columnIndex: depth,
       rootIndex,
-      spawnY: 0,
+      spawnY: depth === 0 ? ROOT_START_Y : 0,  // Root sessions start below crab
       items: [],
     })
   }
