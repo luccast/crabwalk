@@ -791,7 +791,7 @@ function ActionGraphInner({
           }}
           maskColor="rgba(10, 10, 15, 0.8)"
           className="bg-shell-900! border-shell-700!"
-          style={{ backgroundColor: '#0a0a0f' }}
+          style={{ backgroundColor: '#0a0a0f', width: 100, height: 75 }}
         />
       </ReactFlow>
     </div>
