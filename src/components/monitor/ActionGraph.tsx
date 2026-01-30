@@ -789,7 +789,7 @@ function ActionGraphInner({
             title={followMode ? 'Following new nodes (click to disable)' : 'Follow new nodes'}
             className={`p-1.5 rounded border shadow-lg cursor-pointer transition-colors ${
               followMode
-                ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan'
+                ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan backdrop-blur-lg'
                 : 'bg-shell-800 border-shell-700 text-gray-300 hover:bg-shell-700'
             }`}
           >
