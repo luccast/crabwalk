@@ -28,10 +28,10 @@ docker run -d \
   ghcr.io/luccast/crabwalk:latest
 ```
 
-> Note: When running Crabwalk in Docker, the Moltbot gateway typically runs on the *host*.
+> Note: When running Crabwalk in Docker, the Moltbot gateway typically runs on the _host_.
 > Use `CLAWDBOT_URL=ws://host.docker.internal:18789` so the container can connect.
->If you're running Moltbot with `bind: loopback` and `tailscale serve` for secure tailnet-only access, you'll need to run the crabwalk container with host networking - replace `p:3000:3000` with `--network host`
->This allows the container to reach 127.0.0.1:18789 while maintaining the security benefits of loopback-only binding.
+> If you're running Moltbot with `bind: loopback` and `tailscale serve` for secure tailnet-only access, you'll need to run the crabwalk container with host networking - replace `p:3000:3000` with `--network host`
+> This allows the container to reach 127.0.0.1:18789 while maintaining the security benefits of loopback-only binding.
 
 Or with docker-compose:
 
@@ -77,14 +77,6 @@ Or copy it directly:
 ```bash
 export CLAWDBOT_API_TOKEN=$(python3 -c "import json,os; print(json.load(open(os.path.expanduser('~/.clawdbot/clawdbot.json')))['gateway']['auth']['token'])")
 ```
-
-## Accessing from a remote host
-
-If you are running this on a remote server and accessing it through a non-local browser, the default allowedHosts behaviour will prevent access to the web UI.
-
-If running in docker, you can pass the environment variable `ALLOWED_HOSTS` with a comma-separated list of hosts you wish to allow access to the crabwalk UI.
-
-If running from source, you can either pass `ALLOWED_HOSTS` as an env var at the command line, or use a .env file.
 
 ## Stack
 

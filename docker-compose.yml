@@ -5,5 +5,4 @@ services:
       - "3000:3000"
     environment:
       - CLAWDBOT_API_TOKEN=${CLAWDBOT_API_TOKEN}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-}
     restart: unless-stopped
