@@ -35,6 +35,10 @@ const ROOT_START_Y = 200      // Vertical offset from crab to first root session
 const MIN_SESSION_GAP = 120   // Minimum vertical gap between sessions in same column
 const ROOT_HORIZONTAL_GAP = 0 // Gap between root sessions in horizontal mode
 
+// Cache spawn Y positions so they don't change as parent actions accumulate
+// Key: session key, Value: calculated spawn Y offset
+const spawnYCache = new Map<string, number>()
+
 interface SessionColumn {
   sessionKey: string
   columnIndex: number
@@ -215,12 +219,20 @@ export function layoutGraph(
 
   // Calculate spawn Y positions for child sessions
   // When a session is spawned, find the Y position of the parent at that time
+  // Cache these values so they don't jitter as parent actions accumulate
   for (const session of sessions) {
     if (!session.spawnedBy) continue
 
     const parentCol = sessionColumns.get(session.spawnedBy)
     const childCol = sessionColumns.get(session.key)
     if (!parentCol || !childCol) continue
+
+    // Use cached spawn Y if available (prevents jitter from recalculation)
+    const cachedSpawnY = spawnYCache.get(session.key)
+    if (cachedSpawnY !== undefined) {
+      childCol.spawnY = cachedSpawnY
+      continue
+    }
 
     // Find the approximate position in parent where spawn happened
     // Use the child's creation time (approximated by first action time or session activity)
@@ -239,8 +251,10 @@ export function layoutGraph(
       }
     }
 
-    // Calculate Y based on parent's item count
-    childCol.spawnY = parentItemsBeforeSpawn * (NODE_DIMENSIONS.action.height + ROW_GAP) + SPAWN_OFFSET
+    // Calculate Y based on parent's item count and cache it
+    const calculatedSpawnY = parentItemsBeforeSpawn * (NODE_DIMENSIONS.action.height + ROW_GAP) + SPAWN_OFFSET
+    spawnYCache.set(session.key, calculatedSpawnY)
+    childCol.spawnY = calculatedSpawnY
   }
 
   // Position all nodes
@@ -359,6 +373,14 @@ export function layoutGraph(
         position: { x: -200, y: orphanY },
       })
       orphanY += dims.height + ROW_GAP
+    }
+  }
+
+  // Clean up spawn Y cache for sessions that no longer exist
+  const currentSessionKeys = new Set(sessions.map(s => s.key))
+  for (const key of spawnYCache.keys()) {
+    if (!currentSessionKeys.has(key)) {
+      spawnYCache.delete(key)
     }
   }
 
