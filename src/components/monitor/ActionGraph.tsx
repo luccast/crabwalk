@@ -6,6 +6,8 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
+  useReactFlow,
+  useOnViewportChange,
   type Node,
   type Edge,
   type NodeTypes,
@@ -13,7 +15,7 @@ import {
   MarkerType,
   ReactFlowProvider,
 } from '@xyflow/react'
-import { LayoutGrid, ArrowRightLeft, ArrowUpDown } from 'lucide-react'
+import { LayoutGrid, ArrowRightLeft, ArrowUpDown, Crosshair } from 'lucide-react'
 import '@xyflow/react/dist/style.css'
 import { SessionNode } from './SessionNode'
 import { ActionNode } from './ActionNode'
@@ -99,6 +101,22 @@ function ActionGraphInner({
 
   // Layout direction: LR = horizontal (sessions spawn right), TB = vertical (sessions stack down)
   const [layoutDirection, setLayoutDirection] = useState<'LR' | 'TB'>('LR')
+
+  // Follow mode: auto-pan to new nodes
+  const [followMode, setFollowMode] = useState(false)
+  const isAnimatingRef = useRef(false)
+
+  // Get ReactFlow instance for viewport control
+  const { setCenter } = useReactFlow()
+
+  // Detect manual panning and auto-disable follow mode
+  useOnViewportChange({
+    onEnd: useCallback(() => {
+      if (followMode && !isAnimatingRef.current) {
+        setFollowMode(false)
+      }
+    }, [followMode]),
+  })
 
   // Filter actions for selected session, or show all if none selected
   const visibleActions = useMemo(() => {
@@ -457,6 +475,9 @@ function ActionGraphInner({
     const prevPositions = nodePositionsRef.current
     const crab = crabRef.current
 
+    // Track the latest new node for follow mode
+    let latestNewNode: { x: number; y: number } | null = null
+
     // Check for new nodes
     for (const node of layoutedNodes) {
       if (!node.id.includes('crab')) {
@@ -470,7 +491,7 @@ function ActionGraphInner({
           crab.target = { ...nodeCenter, nodeId: node.id }
           crab.state = 'chasing'
           if (timeoutRef.current) clearTimeout(timeoutRef.current)
-          break
+          latestNewNode = nodeCenter
         }
 
         // Existing node moved - if we were tracking it or idle, chase it
@@ -489,8 +510,17 @@ function ActionGraphInner({
       }
     }
 
+    // Follow mode: pan to the latest new node
+    if (followMode && latestNewNode) {
+      isAnimatingRef.current = true
+      setCenter(latestNewNode.x, latestNewNode.y, { zoom: 0.85, duration: 500 })
+      setTimeout(() => {
+        isAnimatingRef.current = false
+      }, 550)
+    }
+
     prevNodeIdsRef.current = currentIds
-  }, [layoutedNodes])
+  }, [layoutedNodes, followMode, setCenter])
 
   // Main animation loop - step-based crab movement at 10fps timing
   useEffect(() => {
@@ -754,6 +784,17 @@ function ActionGraphInner({
           className="bg-shell-900! border-shell-700! shadow-lg! [&>button]:bg-shell-800! [&>button]:border-shell-700! [&>button]:text-gray-300! [&>button:hover]:bg-shell-700! [&>button>svg]:fill-gray-300!"
         />
         <div className="absolute top-2 right-2 z-10 flex gap-1.5">
+          <button
+            onClick={() => setFollowMode((prev) => !prev)}
+            title={followMode ? 'Following new nodes (click to disable)' : 'Follow new nodes'}
+            className={`p-1.5 rounded border shadow-lg cursor-pointer transition-colors ${
+              followMode
+                ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan'
+                : 'bg-shell-800 border-shell-700 text-gray-300 hover:bg-shell-700'
+            }`}
+          >
+            <Crosshair className="w-4 h-4" />
+          </button>
           <button
             onClick={() => {
               setLayoutDirection((d) => (d === 'LR' ? 'TB' : 'LR'))
