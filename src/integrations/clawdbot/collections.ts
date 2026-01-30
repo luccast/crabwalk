@@ -12,11 +12,10 @@ import {
 // Track runId → sessionKey mapping (learned from chat events)
 const runSessionMap = new Map<string, string>()
 
-// Track pending spawns: when a parent makes a Task tool_call, record it here
-const pendingSpawns: Array<{ sessionKey: string; timestamp: number }> = []
-
-// Track recent parent session activity as fallback for spawn inference
-const parentSessionActivity = new Map<string, number>()
+// Track recent parent session actions with precise timestamps
+// Stores the last few action timestamps per parent session
+const parentActionHistory = new Map<string, number[]>()
+const MAX_ACTION_HISTORY = 10
 
 // Time window for spawn inference
 const SPAWN_INFERENCE_WINDOW_MS = 10000
@@ -29,55 +28,53 @@ function isParentSession(key: string): boolean {
   return !isSubagentSession(key) && !key.includes('lifecycle')
 }
 
-// Track activity on a parent session (for fallback inference)
-function trackParentActivity(sessionKey: string, timestamp?: number) {
-  if (!isParentSession(sessionKey)) return
-  parentSessionActivity.set(sessionKey, timestamp ?? Date.now())
-}
-
-// Record a pending spawn when a parent session makes a Task tool call
-function recordPendingSpawn(sessionKey: string, timestamp?: number) {
+// Track an action on a parent session with its timestamp
+function trackParentAction(sessionKey: string, timestamp?: number) {
   if (!isParentSession(sessionKey)) return
   const ts = timestamp ?? Date.now()
-  console.log(`[spawn] recorded pending spawn from ${sessionKey} at ${ts}`)
-  // Clean up old entries
-  const cutoff = ts - SPAWN_INFERENCE_WINDOW_MS
-  while (pendingSpawns.length > 0 && pendingSpawns[0]!.timestamp < cutoff) {
-    pendingSpawns.shift()
+
+  let history = parentActionHistory.get(sessionKey)
+  if (!history) {
+    history = []
+    parentActionHistory.set(sessionKey, history)
   }
-  pendingSpawns.push({ sessionKey, timestamp: ts })
+
+  history.push(ts)
+
+  // Keep only recent entries
+  if (history.length > MAX_ACTION_HISTORY) {
+    history.shift()
+  }
 }
 
 // Infer which parent session spawned this subagent
+// Finds the parent with the most recent action before the subagent's timestamp
 function inferSpawnedBy(subagentKey: string, timestamp?: number): string | undefined {
   if (!isSubagentSession(subagentKey)) return undefined
 
-  const now = timestamp ?? Date.now()
-  const cutoff = now - SPAWN_INFERENCE_WINDOW_MS
+  const subagentTime = timestamp ?? Date.now()
+  const cutoff = subagentTime - SPAWN_INFERENCE_WINDOW_MS
 
-  // First try: find a pending Task tool call spawn
-  for (let i = pendingSpawns.length - 1; i >= 0; i--) {
-    const spawn = pendingSpawns[i]!
-    if (spawn.timestamp >= cutoff) {
-      pendingSpawns.splice(i, 1)
-      console.log(`[spawn] linked ${subagentKey} to ${spawn.sessionKey} via Task tool call`)
-      return spawn.sessionKey
-    }
-  }
-
-  // Fallback: find the most recently active parent session
   let bestParent: string | undefined
   let bestTime = 0
-  for (const [parentKey, activityTime] of parentSessionActivity) {
-    if (now - activityTime > SPAWN_INFERENCE_WINDOW_MS) continue
-    if (activityTime > bestTime) {
-      bestTime = activityTime
-      bestParent = parentKey
+
+  for (const [parentKey, history] of parentActionHistory) {
+    // Find the most recent action from this parent that's before the subagent time
+    for (let i = history.length - 1; i >= 0; i--) {
+      const actionTime = history[i]!
+      // Must be before subagent appeared and within window
+      if (actionTime <= subagentTime && actionTime >= cutoff) {
+        if (actionTime > bestTime) {
+          bestTime = actionTime
+          bestParent = parentKey
+        }
+        break // Found the most recent valid action for this parent
+      }
     }
   }
 
   if (bestParent) {
-    console.log(`[spawn] linked ${subagentKey} to ${bestParent} via activity fallback`)
+    console.log(`[spawn] linked ${subagentKey} to ${bestParent} (action ${subagentTime - bestTime}ms before)`)
   } else {
     console.log(`[spawn] could not infer parent for ${subagentKey}`)
   }
@@ -233,14 +230,9 @@ export function addAction(action: MonitorAction) {
       backfillExecSessionKey(action.runId, action.sessionKey)
     }
 
-    // Track parent session activity for fallback spawn inference
+    // Track parent session actions for spawn inference
     if (isParentSession(action.sessionKey)) {
-      trackParentActivity(action.sessionKey, action.timestamp)
-    }
-
-    // Track Task tool calls for spawn inference
-    if (action.type === 'tool_call' && action.toolName?.toLowerCase() === 'task' && isParentSession(action.sessionKey)) {
-      recordPendingSpawn(action.sessionKey, action.timestamp)
+      trackParentAction(action.sessionKey, action.timestamp)
     }
   }
 
@@ -437,8 +429,7 @@ export function updateSession(key: string, update: Partial<MonitorSession>) {
 // Clear all data
 export function clearCollections() {
   runSessionMap.clear()
-  pendingSpawns.length = 0
-  parentSessionActivity.clear()
+  parentActionHistory.clear()
   for (const session of sessionsCollection.state.values()) {
     sessionsCollection.delete(session.key)
   }
@@ -507,21 +498,17 @@ export function hydrateFromServer(
   // Sort actions by timestamp for replay
   const sortedActions = [...actions].sort((a, b) => a.timestamp - b.timestamp)
 
-  // First pass: record Task tool calls and parent activity to build spawn history
+  // First pass: build parent action history for spawn inference
   for (const action of sortedActions) {
     if (action.sessionKey && isParentSession(action.sessionKey)) {
-      trackParentActivity(action.sessionKey, action.timestamp)
-    }
-    if (action.type === 'tool_call' && action.toolName?.toLowerCase() === 'task' &&
-        action.sessionKey && isParentSession(action.sessionKey)) {
-      recordPendingSpawn(action.sessionKey, action.timestamp)
+      trackParentAction(action.sessionKey, action.timestamp)
     }
   }
 
   // Also track parent sessions by their lastActivityAt
   for (const session of sessions) {
     if (isParentSession(session.key)) {
-      trackParentActivity(session.key, session.lastActivityAt)
+      trackParentAction(session.key, session.lastActivityAt)
     }
   }
 
