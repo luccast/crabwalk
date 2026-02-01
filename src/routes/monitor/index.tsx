@@ -15,6 +15,7 @@ import {
   clearCollections,
   hydrateFromServer,
   clearCompletedExecs,
+  validateGatewayUrl as validateGatewayUrlUtil,
 } from '~/integrations/clawdbot'
 import {
   ActionGraph,
@@ -77,6 +78,10 @@ function MonitorPage() {
   const [persistenceSessionCount, setPersistenceSessionCount] = useState(0)
   const [persistenceActionCount, setPersistenceActionCount] = useState(0)
 
+  // Gateway URL state - initialized as null, loaded from server
+  const [gatewayUrl, setGatewayUrl] = useState<string | null>(null)
+  const [defaultGatewayUrl, setDefaultGatewayUrl] = useState<string | null>(null)
+
   // Sidebar collapse state - default to collapsed
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
 
@@ -104,11 +109,51 @@ function MonitorPage() {
   }, [])
 
 
-  // Check connection status and persistence on mount
+  // Load gateway URL from localStorage and server on mount
   useEffect(() => {
+    loadGatewayUrl()
     checkStatus()
     checkPersistenceStatus()
   }, [])
+
+  const loadGatewayUrl = async () => {
+    try {
+      // Get default URL from server (env var or fallback)
+      const defaultResult = await trpc.clawdbot.getDefaultGatewayUrl.query()
+      setDefaultGatewayUrl(defaultResult.url)
+
+      // Check localStorage for saved URL
+      const savedUrl = localStorage.getItem('clawdbot_gateway_url')
+      if (savedUrl) {
+        // Validate the saved URL format (no side effects)
+        const isValid = validateGatewayUrl(savedUrl)
+        if (isValid) {
+          // Update state first to ensure UI consistency
+          setGatewayUrl(savedUrl)
+          // Then apply the saved URL on the server
+          await trpc.clawdbot.setGatewayUrl.mutate({ url: savedUrl })
+        } else {
+          // If invalid, clear localStorage and use default
+          console.warn('[monitor] Saved gateway URL invalid, using default')
+          localStorage.removeItem('clawdbot_gateway_url')
+          setGatewayUrl(defaultResult.url)
+        }
+      } else {
+        // Use server default URL
+        setGatewayUrl(defaultResult.url)
+      }
+    } catch (e) {
+      console.error('Failed to load gateway URL:', e)
+      // Set fallback values on error so UI isn't stuck in loading state
+      setGatewayUrl('ws://127.0.0.1:18789')
+      setDefaultGatewayUrl('ws://127.0.0.1:18789')
+    }
+  }
+
+  // Client-side URL validation helper using shared utility
+  const validateGatewayUrl = (url: string): boolean => {
+    return validateGatewayUrlUtil(url).valid
+  }
 
   const checkPersistenceStatus = async () => {
     try {
@@ -284,6 +329,25 @@ function MonitorPage() {
       clearCollections()
     } catch (e) {
       console.error('Failed to clear persistence:', e)
+    }
+  }
+
+  const handleGatewayUrlChange = async (url: string) => {
+    try {
+      const result = await trpc.clawdbot.setGatewayUrl.mutate({ url })
+      if (result.success) {
+        setGatewayUrl(url)
+        localStorage.setItem('clawdbot_gateway_url', url)
+        // If we were connected, we're now disconnected
+        if (result.wasConnected) {
+          setConnected(false)
+          clearCollections()
+        }
+      } else {
+        console.error('Failed to set gateway URL:', result.error)
+      }
+    } catch (e) {
+      console.error('Failed to set gateway URL:', e)
     }
   }
 
@@ -463,6 +527,8 @@ function MonitorPage() {
             persistenceStartedAt={persistenceStartedAt}
             persistenceSessionCount={persistenceSessionCount}
             persistenceActionCount={persistenceActionCount}
+            gatewayUrl={gatewayUrl}
+            defaultGatewayUrl={defaultGatewayUrl}
             open={settingsOpen}
             onOpenChange={setSettingsOpen}
             onHistoricalModeChange={handleHistoricalModeChange}
@@ -476,6 +542,7 @@ function MonitorPage() {
             onPersistenceStart={handlePersistenceStart}
             onPersistenceStop={handlePersistenceStop}
             onPersistenceClear={handlePersistenceClear}
+            onGatewayUrlChange={handleGatewayUrlChange}
           />
         </div>
       </header>

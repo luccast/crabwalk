@@ -2,7 +2,13 @@ import { initTRPC } from '@trpc/server'
 import { observable } from '@trpc/server/observable'
 import superjson from 'superjson'
 import { z } from 'zod'
-import { getClawdbotClient } from '~/integrations/clawdbot/client'
+import {
+  getClawdbotClient,
+  getClawdbotClientUrl,
+  getDefaultGatewayUrl,
+  setClawdbotClientUrl,
+} from '~/integrations/clawdbot/client'
+import { validateGatewayUrl } from '~/integrations/clawdbot'
 import { getPersistenceService } from '~/integrations/clawdbot/persistence'
 import {
   parseEventFrame,
@@ -59,6 +65,41 @@ const clawdbotRouter = router({
     const client = getClawdbotClient()
     return { connected: client.connected }
   }),
+
+  getGatewayUrl: publicProcedure.query(() => {
+    return { url: getClawdbotClientUrl() }
+  }),
+
+  getDefaultGatewayUrl: publicProcedure.query(() => {
+    return { url: getDefaultGatewayUrl() }
+  }),
+
+  setGatewayUrl: publicProcedure
+    .input(z.object({ url: z.string() }))
+    .mutation(({ input }) => {
+      // Validate URL format using shared utility
+      const validation = validateGatewayUrl(input.url)
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: validation.error || 'Invalid WebSocket URL format.',
+        }
+      }
+
+      const wasConnected = getClawdbotClient().connected
+
+      // Set the new URL (this will disconnect if connected)
+      setClawdbotClientUrl(input.url)
+
+      return {
+        success: true,
+        url: input.url,
+        wasConnected,
+        message: wasConnected
+          ? 'Disconnected from previous gateway. Click Connect to connect to the new URL.'
+          : 'Gateway URL updated. Click Connect to connect.',
+      }
+    }),
 
   setDebugMode: publicProcedure
     .input(z.object({ enabled: z.boolean() }))

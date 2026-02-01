@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Settings, X, Wifi, WifiOff, RefreshCw, Terminal, Download, Trash2, Database, HardDrive, Play, Square, CloudDownload } from 'lucide-react'
+import { Settings, X, Wifi, WifiOff, RefreshCw, Terminal, Download, Trash2, Database, HardDrive, Play, Square, CloudDownload, Edit2, Check, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
 import { version } from '../../../package.json'
+import { validateGatewayUrl } from '~/integrations/clawdbot'
 
 interface SettingsPanelProps {
   connected: boolean
@@ -12,6 +14,8 @@ interface SettingsPanelProps {
   persistenceStartedAt: number | null
   persistenceSessionCount: number
   persistenceActionCount: number
+  gatewayUrl: string | null
+  defaultGatewayUrl: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onHistoricalModeChange: (enabled: boolean) => void
@@ -25,6 +29,7 @@ interface SettingsPanelProps {
   onPersistenceStart: () => void
   onPersistenceStop: () => void
   onPersistenceClear: () => void
+  onGatewayUrlChange: (url: string) => void
 }
 
 export function SettingsPanel({
@@ -37,6 +42,8 @@ export function SettingsPanel({
   persistenceStartedAt,
   persistenceSessionCount,
   persistenceActionCount,
+  gatewayUrl,
+  defaultGatewayUrl,
   open,
   onOpenChange,
   onHistoricalModeChange,
@@ -50,7 +57,44 @@ export function SettingsPanel({
   onPersistenceStart,
   onPersistenceStop,
   onPersistenceClear,
+  onGatewayUrlChange,
 }: SettingsPanelProps) {
+  const [editingUrl, setEditingUrl] = useState(false)
+  const [urlInput, setUrlInput] = useState(gatewayUrl ?? '')
+  const [urlError, setUrlError] = useState<string | null>(null)
+
+  const isCustomUrl = gatewayUrl !== null && defaultGatewayUrl !== null && gatewayUrl !== defaultGatewayUrl
+
+  const handleStartEdit = () => {
+    setUrlInput(gatewayUrl ?? '')
+    setUrlError(null)
+    setEditingUrl(true)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingUrl(false)
+    setUrlError(null)
+  }
+
+  const handleSaveUrl = () => {
+    // Validate URL format using shared utility
+    const result = validateGatewayUrl(urlInput)
+    if (!result.valid) {
+      setUrlError(result.error || 'Invalid URL format')
+      return
+    }
+    onGatewayUrlChange(urlInput)
+    setEditingUrl(false)
+    setUrlError(null)
+  }
+
+  const handleResetToDefault = () => {
+    if (defaultGatewayUrl) {
+      onGatewayUrlChange(defaultGatewayUrl)
+    }
+    setEditingUrl(false)
+    setUrlError(null)
+  }
 
   return (
     <>
@@ -296,6 +340,87 @@ export function SettingsPanel({
                   </div>
                 </div>
 
+                {/* Gateway URL Configuration */}
+                <div className="panel-retro p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-display text-xs text-gray-400 uppercase tracking-wide">
+                      <span className="text-crab-600">❮</span> Gateway URL <span className="text-crab-600">❯</span>
+                    </h3>
+                    {!editingUrl && (
+                      <button
+                        onClick={handleStartEdit}
+                        className="p-1.5 hover:bg-shell-800 rounded transition-colors"
+                        title="Edit gateway URL"
+                      >
+                        <Edit2 size={12} className="text-shell-500" />
+                      </button>
+                    )}
+                  </div>
+
+                  {editingUrl ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={urlInput ?? ''}
+                        onChange={(e) => setUrlInput(e.target.value)}
+                        placeholder="ws://127.0.0.1:18789"
+                        className="w-full px-3 py-2 bg-shell-950 border border-shell-700 rounded font-console text-[11px] text-gray-300 focus:outline-hidden focus:border-crab-600"
+                        autoFocus
+                      />
+                      {urlError && (
+                        <p className="font-console text-[10px] text-crab-400">
+                          {urlError}
+                        </p>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSaveUrl}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 font-display text-[10px] uppercase tracking-wide bg-neon-mint/20 hover:bg-neon-mint/30 text-neon-mint rounded transition-all"
+                        >
+                          <Check size={12} />
+                          Save
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="flex-1 px-3 py-1.5 font-display text-[10px] uppercase tracking-wide bg-shell-800 hover:bg-shell-700 text-gray-400 rounded transition-all"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      {isCustomUrl && (
+                        <button
+                          onClick={handleResetToDefault}
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 font-display text-[10px] uppercase tracking-wide bg-shell-800 hover:bg-crab-900/50 text-shell-400 rounded transition-all"
+                        >
+                          <RotateCcw size={12} />
+                          Reset to Default
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="font-console text-[10px] space-y-1.5">
+                      {gatewayUrl ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-crab-600">&gt;</span>
+                          <span className={isCustomUrl ? 'text-neon-cyan' : 'text-shell-500'}>
+                            {gatewayUrl}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-crab-600">&gt;</span>
+                          <span className="text-shell-600 animate-pulse">Loading...</span>
+                        </div>
+                      )}
+                      {isCustomUrl && defaultGatewayUrl && (
+                        <div className="text-shell-600">
+                          <span className="text-crab-600">&gt;</span> default: {defaultGatewayUrl}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {/* Info panel */}
                 <div className="panel-retro p-4 bg-shell-950/50">
                   <h3 className="font-display text-xs text-gray-400 uppercase tracking-wide mb-3">
@@ -304,7 +429,7 @@ export function SettingsPanel({
 
                   <div className="font-console text-[10px] text-shell-500 space-y-1.5">
                     <div>
-                      <span className="text-crab-600">&gt;</span> endpoint: ws://127.0.0.1:18789
+                      <span className="text-crab-600">&gt;</span> endpoint: {gatewayUrl ?? 'Loading...'}
                     </div>
                     <div>
                       <span className="text-crab-600">&gt;</span> protocol: v3

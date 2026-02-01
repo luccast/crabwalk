@@ -32,9 +32,22 @@ export class ClawdbotClient {
   private _connecting = false
 
   constructor(
-    private url: string = 'ws://127.0.0.1:18789',
+    private _url: string = 'ws://127.0.0.1:18789',
     private token?: string
   ) {}
+
+  get url(): string {
+    return this._url
+  }
+
+  setUrl(url: string): void {
+    // Disconnect if connected before changing URL
+    if (this._connected || this._connecting) {
+      this.disconnect()
+      this._connecting = false
+    }
+    this._url = url
+  }
 
   get connected() {
     return this._connected
@@ -236,16 +249,49 @@ export class ClawdbotClient {
   }
 }
 
+// Default gateway URL (openclaw default)
+const DEFAULT_GATEWAY_URL = 'ws://127.0.0.1:18789'
+
 // Singleton instance for server use
 let clientInstance: ClawdbotClient | null = null
 
+export function getDefaultGatewayUrl(): string {
+  return process.env.CLAWDBOT_URL || DEFAULT_GATEWAY_URL
+}
+
 export function getClawdbotClient(): ClawdbotClient {
   if (!clientInstance) {
-    const url = process.env.CLAWDBOT_URL || 'ws://127.0.0.1:18789'
+    const url = getDefaultGatewayUrl()
     const token = process.env.CLAWDBOT_API_TOKEN
     clientInstance = new ClawdbotClient(url, token)
   }
   return clientInstance
+}
+
+export function resetClawdbotClient(): void {
+  if (clientInstance) {
+    clientInstance.disconnect()
+    clientInstance = null
+  }
+}
+
+export function setClawdbotClientUrl(url: string): void {
+  // If client exists and is connected, disconnect and reset to ensure clean state
+  if (clientInstance) {
+    if (clientInstance.connected) {
+      clientInstance.disconnect()
+    }
+    // Reset the singleton so a new client is created with the new URL
+    // This ensures no stale state from previous connections
+    clientInstance = null
+  }
+  // Create new client with the new URL
+  const token = process.env.CLAWDBOT_API_TOKEN
+  clientInstance = new ClawdbotClient(url, token)
+}
+
+export function getClawdbotClientUrl(): string {
+  return getClawdbotClient().url
 }
 
 // Parsed event helpers
