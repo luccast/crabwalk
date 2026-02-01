@@ -64,7 +64,29 @@ Open http://localhost:3000 in browser.
 - Node.js 20+
 - clawdbot gateway running on `ws://127.0.0.1:18789`
 
+## Check for Updates
+
+```bash
+INSTALLED=$(cat ~/.crabwalk/package.json 2>/dev/null | grep '"version"' | cut -d'"' -f4)
+LATEST=$(curl -s https://api.github.com/repos/luccast/crabwalk/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v')
+
+if [ -z "$INSTALLED" ]; then
+  echo "Crabwalk not installed"
+elif [ "$INSTALLED" != "$LATEST" ]; then
+  echo "Update available: $INSTALLED -> $LATEST"
+else
+  echo "Already on latest: $INSTALLED"
+fi
+```
+
 ## Updating
+
+**IMPORTANT: Always ask user permission before updating.**
+
+If update available, ask user:
+> "Crabwalk update available (X.X.X -> Y.Y.Y). See release: https://github.com/luccast/crabwalk/releases/tag/vY.Y.Y — Update now?"
+
+Only proceed if user confirms:
 
 ```bash
 VERSION=$(curl -s https://api.github.com/repos/luccast/crabwalk/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
