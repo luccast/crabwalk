@@ -11,6 +11,7 @@
   "install": {
     "method": "tarball",
     "location": "~/.crabwalk",
-    "start_command": "node ~/.crabwalk/.output/server/index.mjs"
+    "cli": "~/.local/bin/crabwalk",
+    "start_command": "crabwalk"
   }
 }

@@ -33,7 +33,7 @@ jobs:
 
       - name: Create build artifact
         run: |
-          tar -czvf crabwalk-${{ github.ref_name }}.tar.gz .output
+          tar -czvf crabwalk-${{ github.ref_name }}.tar.gz .output bin package.json
 
       - name: Upload build to release
         uses: softprops/action-gh-release@v1

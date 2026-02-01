@@ -26,6 +26,27 @@ Paste this link to your OpenClaw agent and ask it to install/update Crabwalk:
 https://raw.githubusercontent.com/luccast/crabwalk/master/public/skill.md
 ```
 
+### CLI Install
+
+```bash
+VERSION=$(curl -s https://api.github.com/repos/luccast/crabwalk/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+mkdir -p ~/.crabwalk ~/.local/bin
+curl -sL "https://github.com/luccast/crabwalk/releases/download/${VERSION}/crabwalk-${VERSION}.tar.gz" | tar -xz -C ~/.crabwalk
+cp ~/.crabwalk/bin/crabwalk ~/.local/bin/
+chmod +x ~/.local/bin/crabwalk
+```
+
+Then run:
+
+```bash
+crabwalk                    # Start on 0.0.0.0:3000
+crabwalk start --daemon     # Run in background
+crabwalk start -p 8080      # Custom port
+crabwalk stop               # Stop daemon
+crabwalk status             # Check if running
+crabwalk update             # Update to latest
+```
+
 ### Docker (recommended)
 
 ```bash
