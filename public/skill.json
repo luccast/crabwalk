@@ -1,0 +1,16 @@
+{
+  "name": "crabwalk",
+  "version": "1.0.7",
+  "description": "Real-time companion monitor for OpenClaw agents",
+  "homepage": "https://crabwalk.app",
+  "repository": "https://github.com/luccast/crabwalk",
+  "metadata": {
+    "emoji": "🦀",
+    "category": "monitoring"
+  },
+  "install": {
+    "method": "tarball",
+    "location": "~/.crabwalk",
+    "start_command": "node ~/.crabwalk/.output/server/index.mjs"
+  }
+}
