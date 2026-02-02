@@ -12,7 +12,14 @@ import {
 } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
 import { CommandNav } from '~/components/navigation'
-import { AppHeader, StatusPill, IconButton, PathInput } from '~/components/layout'
+import {
+  FloatingHUD,
+  FloatingPanel,
+  FloatingInputBar,
+  HUDNavSpacer,
+  HUDStatusPill,
+  HUDIconButton,
+} from '~/components/layout'
 import {
   FileTree as FileTreeComponent,
   MarkdownViewer,
@@ -358,41 +365,46 @@ function WorkspacePage() {
 
 
   return (
-    <div className="h-screen flex flex-col bg-shell-950 text-white overflow-hidden">
+    <div className="h-screen bg-shell-950 text-white overflow-hidden">
       {/* Global navigation */}
       <CommandNav />
 
-      {/* Header */}
-      <AppHeader
-        left={
-          <StatusPill
+      {/* Floating HUD - hovers over content */}
+      <FloatingHUD>
+        {/* Left panel - status */}
+        <HUDNavSpacer />
+        <FloatingPanel delay={0.05}>
+          <HUDStatusPill
             status={pathValid ? 'active' : 'inactive'}
-            label={pathValid ? 'PATH SET' : 'NO PATH'}
+            label={pathValid ? 'WORKSPACE' : 'NO PATH'}
           />
-        }
-        center={
-          <PathInput
-            value={workspacePathInput}
-            onChange={setWorkspacePathInput}
-            onSubmit={validateAndSetPath}
-            placeholder="Enter workspace path..."
-            icon={<FolderOpen size={16} />}
-            submitDisabled={pathValid && workspacePathInput === workspacePath}
-            error={pathError}
-          />
-        }
-        right={
-          <IconButton
-            icon={<RefreshCw size={16} className={loading ? 'animate-spin' : ''} />}
+        </FloatingPanel>
+
+        {/* Center - path input */}
+        <FloatingInputBar
+          value={workspacePathInput}
+          onChange={setWorkspacePathInput}
+          onSubmit={validateAndSetPath}
+          placeholder="Enter workspace path..."
+          icon={<FolderOpen size={14} />}
+          submitDisabled={pathValid && workspacePathInput === workspacePath}
+          error={pathError}
+          delay={0.1}
+        />
+
+        {/* Right panel - actions */}
+        <FloatingPanel delay={0.15}>
+          <HUDIconButton
+            icon={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}
             onClick={handleRefresh}
             disabled={!pathValid || loading}
             title="Refresh workspace"
           />
-        }
-      />
+        </FloatingPanel>
+      </FloatingHUD>
 
-      {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main content - flows beneath HUD */}
+      <div className="h-full flex overflow-hidden pt-16">
         {/* Sidebar - desktop only */}
         {!isMobile && (
           <motion.div

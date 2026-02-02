@@ -6,14 +6,17 @@ import { Activity, HardDrive, Trash2, Settings } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
 import { CommandNav } from '~/components/navigation'
 import {
-  AppHeader,
-  StatusPill,
-  StatBlock,
-  StatsGroup,
-  StatsDivider,
-  BadgeCounter,
-  ServiceIndicator,
-  RetryIndicator,
+  FloatingHUD,
+  FloatingPanel,
+  HUDSection,
+  HUDNavSpacer,
+  HUDDivider,
+  HUDStatusPill,
+  StatDisplay,
+  HUDIconButton,
+  HUDServiceIndicator,
+  HUDBadgeCounter,
+  HUDRetryIndicator,
 } from '~/components/layout'
 import {
   sessionsCollection,
@@ -378,63 +381,60 @@ function MonitorPage() {
   }, [connected])
 
   return (
-    <div className="h-screen flex flex-col bg-shell-950 text-white overflow-hidden">
+    <div className="h-screen bg-shell-950 text-white overflow-hidden">
       {/* Global navigation */}
       <CommandNav />
 
-      {/* Header */}
-      <AppHeader
-        hiddenOnMobile={false}
-        left={
-          <>
-            <StatusPill
-              status={connected ? 'connected' : connecting ? 'connecting' : 'disconnected'}
-            />
-            <AnimatePresence>
-              {connecting && retryCount > 0 && (
-                <RetryIndicator retryCount={retryCount} maxRetries={MAX_RETRIES} />
-              )}
-            </AnimatePresence>
-          </>
-        }
-        right={
-          <>
-            {/* Clear completed */}
-            <BadgeCounter
+      {/* Floating HUD - hovers over content */}
+      <FloatingHUD>
+        {/* Left panel - status */}
+        <HUDNavSpacer />
+        <FloatingPanel delay={0.05}>
+          <HUDStatusPill
+            status={connected ? 'connected' : connecting ? 'connecting' : 'disconnected'}
+          />
+          <AnimatePresence>
+            {connecting && retryCount > 0 && (
+              <HUDRetryIndicator retryCount={retryCount} maxRetries={MAX_RETRIES} />
+            )}
+          </AnimatePresence>
+        </FloatingPanel>
+
+        {/* Spacer to push right panel */}
+        <div className="flex-1" />
+
+        {/* Right panel - stats & actions */}
+        <FloatingPanel delay={0.1}>
+          <HUDSection>
+            <StatDisplay label="Sessions" value={sessions.length} color="mint" />
+            <HUDDivider />
+            <StatDisplay label="Actions" value={actions.length} color="peach" />
+          </HUDSection>
+
+          <HUDSection divider>
+            <HUDBadgeCounter
               count={completedCount}
-              icon={<Trash2 size={14} />}
+              icon={<Trash2 size={12} />}
               onClick={handleClearCompleted}
               title={`Clear ${completedCount} completed`}
             />
-
-            {/* Persistence service */}
-            <ServiceIndicator
+            <HUDServiceIndicator
               active={persistenceEnabled}
-              icon={<HardDrive size={14} />}
+              icon={<HardDrive size={12} />}
               onClick={() => setSettingsOpen(true)}
               title={persistenceEnabled ? 'Background service running' : 'Service stopped'}
             />
-
-            {/* Stats */}
-            <StatsGroup>
-              <StatBlock label="Sessions" value={sessions.length} color="mint" />
-              <StatsDivider />
-              <StatBlock label="Actions" value={actions.length} color="peach" />
-            </StatsGroup>
-
-            {/* Settings trigger */}
-            <button
+            <HUDIconButton
+              icon={<Settings size={14} />}
               onClick={() => setSettingsOpen(true)}
-              className="p-2 bg-shell-800/50 hover:bg-shell-700/50 border border-shell-700/50 hover:border-shell-600 rounded-lg transition-all group"
-            >
-              <Settings size={14} className="text-gray-400 group-hover:text-crab-400 transition-colors" />
-            </button>
-          </>
-        }
-      />
+              title="Settings"
+            />
+          </HUDSection>
+        </FloatingPanel>
+      </FloatingHUD>
 
-      {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main content - flows beneath HUD */}
+      <div className="h-full flex overflow-hidden pt-16">
         {/* Sidebar */}
         <SessionList
           sessions={sessions}

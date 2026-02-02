@@ -201,17 +201,39 @@ transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
 
 ## Layout Patterns
 
-### Header Structure
+### Floating HUD System
+
+The interface uses a floating HUD (Heads-Up Display) approach where controls hover over content rather than occupying fixed header space. This creates a more immersive, cockpit-like experience.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ [Nav Trigger]  [Context Controls]     [Stats] [Actions]     │
+│ [Nav]  [Status Panel]    [Input Bar]    [Stats & Actions]   │  ← Floating panels
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│                    Content flows beneath                     │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- Nav trigger: Fixed position overlay (z-50)
-- Header: Sticky, semi-transparent (`bg-shell-900/80 backdrop-blur-sm`)
-- Left side: Spacer for nav + page-specific context
-- Right side: Stats, status indicators, action buttons
+**Key principles:**
+- Panels are `fixed` position with `pointer-events-none` on container
+- Individual panels have `pointer-events-auto` to remain interactive
+- Content has `pt-16` padding to avoid initial overlap
+- Panels use `backdrop-blur-md` and `bg-shell-900/95` for glass effect
+- Staggered entrance animations (`delay: 0.05, 0.1, 0.15...`)
+
+### Floating Panel Styling
+```tsx
+<div className="px-3 py-2 bg-shell-900/95 backdrop-blur-md border border-shell-700/80 rounded-lg shadow-lg shadow-black/20">
+  {children}
+</div>
+```
+
+### Nav Spacer
+All pages need a spacer to account for the fixed CommandNav button:
+```tsx
+<div className="w-56 sm:w-64 shrink-0" />
+```
 
 ### Z-Index Layers
 | Layer | Z-Index | Use |
