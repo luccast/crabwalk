@@ -22,8 +22,11 @@ import {
   SessionList,
   SettingsPanel,
   StatusIndicator,
+  MobileSessionDrawer,
+  MobileMonitorToolbar,
 } from '~/components/monitor'
 import { CrabIdleAnimation } from '~/components/ani'
+import { useIsMobile } from '~/hooks/useIsMobile'
 
 export const Route = createFileRoute('/monitor/')({
   component: MonitorPageWrapper,
@@ -83,6 +86,10 @@ function MonitorPage() {
 
   // Settings panel state
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // Mobile state
+  const isMobile = useIsMobile()
+  const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false)
 
   // Live queries from TanStack DB collections
   const sessionsQuery = useLiveQuery(sessionsCollection)
@@ -480,17 +487,19 @@ function MonitorPage() {
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <SessionList
-          sessions={sessions}
-          selectedKey={selectedSession}
-          onSelect={setSelectedSession}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={handleToggleSidebar}
-        />
+        {/* Sidebar - desktop only */}
+        {!isMobile && (
+          <SessionList
+            sessions={sessions}
+            selectedKey={selectedSession}
+            onSelect={setSelectedSession}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={handleToggleSidebar}
+          />
+        )}
 
         {/* Graph area */}
-        <div className="flex-1 relative">
+        <div className={`flex-1 relative ${isMobile ? 'pb-20' : ''}`}>
           <ActionGraph
             sessions={sessions}
             actions={actions}
@@ -500,6 +509,29 @@ function MonitorPage() {
           />
         </div>
       </div>
+
+      {/* Mobile components */}
+      {isMobile && (
+        <>
+          <MobileMonitorToolbar
+            onOpenDrawer={() => setSessionDrawerOpen(true)}
+            onOpenSettings={() => setSettingsOpen(true)}
+            connected={connected}
+            connecting={connecting}
+            sessionCount={sessions.length}
+            actionCount={actions.length}
+            completedCount={completedCount}
+            onClearCompleted={handleClearCompleted}
+          />
+          <MobileSessionDrawer
+            open={sessionDrawerOpen}
+            onClose={() => setSessionDrawerOpen(false)}
+            sessions={sessions}
+            selectedKey={selectedSession}
+            onSelect={setSelectedSession}
+          />
+        </>
+      )}
     </div>
   )
 }

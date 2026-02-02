@@ -54,9 +54,10 @@ export function SettingsPanel({
 
   return (
     <>
+      {/* Trigger button - hidden on mobile, settings available in bottom bar */}
       <button
         onClick={() => onOpenChange(true)}
-        className="p-2 bg-shell-800 hover:bg-shell-700 rounded-lg transition-all group"
+        className="hidden sm:block p-2 bg-shell-800 hover:bg-shell-700 rounded-lg transition-all group"
       >
         <Settings size={14} className="text-gray-400 group-hover:text-crab-400 transition-colors" />
       </button>
