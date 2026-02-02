@@ -1,6 +1,7 @@
-import { Link, useLocation } from '@tanstack/react-router'
-import { motion } from 'framer-motion'
-import { Activity, FolderTree } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Activity, FolderTree, ChevronDown, Terminal } from 'lucide-react'
 
 interface NavTab {
   path: string
@@ -22,69 +23,157 @@ const TABS: NavTab[] = [
 ]
 
 export function NavTabs() {
+  const [open, setOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const currentPath = location.pathname.replace(/\/$/, '') || '/'
 
+  const activeTab = (TABS.find(
+    (tab) => tab.path === currentPath || currentPath.startsWith(tab.path)
+  ) ?? TABS[0])!
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [open])
+
+  // Close on escape
+  useEffect(() => {
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    if (open) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [open])
+
+  const handleSelect = (path: string) => {
+    setOpen(false)
+    navigate({ to: path })
+  }
+
   return (
-    <div className="flex items-center">
-      {TABS.map((tab) => {
-        const isActive =
-          tab.path === currentPath ||
-          (tab.path !== '/' && currentPath.startsWith(tab.path))
+    <div ref={dropdownRef} className="relative">
+      {/* Trigger button */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-shell-700/50 bg-shell-800/50 hover:bg-shell-800 hover:border-shell-600 transition-all group"
+      >
+        <span className="text-crab-400">{activeTab.icon}</span>
+        <span className="font-console text-xs tracking-widest text-shell-200">
+          {activeTab.label}
+        </span>
 
-        return (
-          <Link
-            key={tab.path}
-            to={tab.path}
-            className="relative group"
-          >
-            {/* Background glow for active state */}
-            {isActive && (
-              <motion.div
-                layoutId="nav-tab-glow"
-                className="absolute inset-0 -z-10"
-                transition={{ type: 'spring', bounce: 0.15, duration: 0.5 }}
-              >
-                <div className="absolute inset-x-0 bottom-0 h-8 bg-linear-to-t from-crab-500/15 to-transparent" />
-                <div className="absolute inset-x-2 bottom-0 h-6 bg-linear-to-t from-crab-500/10 to-transparent blur-sm" />
-              </motion.div>
-            )}
+        <ChevronDown
+          size={14}
+          className={`text-shell-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
 
-            <div
-              className={`flex items-center gap-2 px-4 py-2.5 transition-all duration-200 ${
-                isActive
-                  ? 'text-crab-400'
-                  : 'text-shell-500 hover:text-shell-300'
-              }`}
+      {/* Dropdown menu */}
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 z-40"
+              onClick={() => setOpen(false)}
+            />
+
+            {/* Dropdown panel */}
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.96 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 400 }}
+              className="absolute top-full left-0 mt-2 z-50 min-w-[200px]"
             >
-              <span
-                className={`transition-colors duration-200 ${
-                  isActive ? 'text-crab-400' : 'text-shell-600 group-hover:text-shell-400'
-                }`}
-              >
-                {tab.icon}
-              </span>
-              <span className="font-console text-xs tracking-widest">
-                {tab.label}
-              </span>
-            </div>
+              {/* Terminal-style container */}
+              <div className="bg-shell-900 border border-shell-700 rounded-lg overflow-hidden shadow-2xl shadow-black/50">
+                {/* Terminal header */}
+                <div className="flex items-center gap-2 px-3 py-2 bg-shell-950 border-b border-shell-800">
+                  <Terminal size={12} className="text-shell-500" />
+                  <span className="font-console text-[10px] text-shell-500 uppercase tracking-widest">
+                    navigate
+                  </span>
+                  {/* Decorative dots */}
+                  <div className="ml-auto flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-shell-700" />
+                    <div className="w-2 h-2 rounded-full bg-shell-700" />
+                    <div className="w-2 h-2 rounded-full bg-crab-500/50" />
+                  </div>
+                </div>
 
-            {/* Subtle underline */}
-            {isActive && (
-              <motion.div
-                layoutId="nav-tab-indicator"
-                className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-crab-500"
-                transition={{ type: 'spring', bounce: 0.15, duration: 0.5 }}
-              />
-            )}
+                {/* Menu items */}
+                <div className="p-1.5">
+                  {TABS.map((tab, index) => {
+                    const isActive =
+                      tab.path === currentPath || currentPath.startsWith(tab.path)
 
-            {/* Hover indicator for inactive tabs */}
-            {!isActive && (
-              <div className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-shell-600/0 group-hover:bg-shell-600/40 transition-colors duration-200" />
-            )}
-          </Link>
-        )
-      })}
+                    return (
+                      <motion.button
+                        key={tab.path}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        onClick={() => handleSelect(tab.path)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all group ${
+                          isActive
+                            ? 'bg-crab-500/10 text-crab-400'
+                            : 'text-shell-400 hover:bg-shell-800 hover:text-shell-200'
+                        }`}
+                      >
+                        {/* Icon */}
+                        <span
+                          className={`transition-colors ${
+                            isActive ? 'text-crab-400' : 'text-shell-500 group-hover:text-shell-400'
+                          }`}
+                        >
+                          {tab.icon}
+                        </span>
+
+                        {/* Label */}
+                        <span className="font-console text-xs tracking-widest flex-1 text-left">
+                          {tab.label}
+                        </span>
+
+                        {/* Active indicator */}
+                        {isActive && (
+                          <motion.div
+                            layoutId="nav-dropdown-active"
+                            className="w-1.5 h-1.5 rounded-full bg-crab-500"
+                          />
+                        )}
+                      </motion.button>
+                    )
+                  })}
+                </div>
+
+                {/* Terminal footer with hint */}
+                <div className="px-3 py-2 bg-shell-950/50 border-t border-shell-800/50">
+                  <span className="font-console text-[9px] text-shell-600">
+                    <span className="text-shell-500">esc</span> to close
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

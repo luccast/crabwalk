@@ -167,17 +167,17 @@ export function SessionList({
 
       {/* Header */}
       <div className="relative p-3 bg-shell-950/50 overflow-hidden">
-        <div className="flex items-center justify-between mb-3">
+        <div className={`flex items-center mb-3 ${collapsed ? "justify-center" : "justify-between"}`}>
           <h2
             className={`font-mono uppercase text-sm text-crab-400 glow-red tracking-wider ml-1 transition-opacity duration-200 ${
-              collapsed ? "opacity-0" : "opacity-100"
+              collapsed ? "opacity-0 absolute pointer-events-none" : "opacity-100"
             }`}
           >
             Sessions
           </h2>
           <button
             onClick={onToggleCollapse}
-            className={`p-1.5 hover:bg-shell-800 rounded transition-all ${collapsed ? "absolute left-1/2 -translate-x-1/2" : ""}`}
+            className="p-1.5 hover:bg-shell-800 rounded transition-all"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? (
@@ -321,8 +321,8 @@ export function SessionList({
                       } flex items-center gap-1.5 text-xs font-display uppercase tracking-widest text-shell-500 hover:text-shell-300 hover:bg-shell-800/30`}
                     >
                       <ChevronDown
-                        size={14}
-                        className={`transition-transform ${isGroupCollapsed ? "-rotate-90" : ""}`}
+                        size={16}
+                        className={`transition-transform ${isGroupCollapsed ? "-rotate-90" : ""} ${collapsed ? "ml-2" : ""}`}
                       />
                       <span className={`transition-opacity duration-200 ${collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
                         {subs.length} subagent{subs.length > 1 ? "s" : ""}
@@ -382,8 +382,8 @@ export function SessionList({
       </div>
 
       {/* Footer */}
-      <div className="relative bg-shell-950/50 p-2.5">
-        <div className="font-console text-xs text-shell-500 text-center flex items-center justify-center gap-4">
+      <div className={`relative bg-shell-950/50 ${collapsed ? "py-3 px-2" : "p-2.5"}`}>
+        <div className={`font-console text-xs text-shell-500 text-center flex items-center justify-center ${collapsed ? "flex-col gap-3" : "gap-4"}`}>
           <a
             href="https://github.com/luccast/crabwalk"
             target="_blank"
@@ -392,7 +392,7 @@ export function SessionList({
             title="Github"
           >
             <Github size={14} />
-            <span className={`transition-opacity duration-200 ${collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
+            <span className={`transition-opacity duration-200 ${collapsed ? "hidden" : "opacity-100"}`}>
               Github
             </span>
           </a>
@@ -406,7 +406,7 @@ export function SessionList({
             title="X"
           >
             <XIcon size={14} />
-            <span className={`transition-opacity duration-200 ${collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
+            <span className={`transition-opacity duration-200 ${collapsed ? "hidden" : "opacity-100"}`}>
               @luccasveg
             </span>
           </a>
