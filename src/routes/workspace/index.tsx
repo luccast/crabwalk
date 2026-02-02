@@ -546,7 +546,7 @@ function WorkspacePage() {
 
           {/* File tree */}
           {!sidebarCollapsed && (
-            <div className="flex-1 overflow-auto py-2">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden py-2">
               {pathValid ? (
                 <FileTree
                   entries={rootEntries}

@@ -90,7 +90,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }:
       <motion.div
         onClick={handleClick}
         style={{ paddingLeft }}
-        className={`w-full flex items-center gap-2 py-1.5 pr-3 text-left transition-all duration-150 rounded-md mx-1 cursor-pointer ${
+        className={`flex items-center gap-2 py-1.5 pr-2 text-left transition-all duration-150 rounded-md mr-1 cursor-pointer ${
           isSelected
             ? 'bg-crab-500/20 text-crab-400 border-l-2 border-crab-400'
             : 'text-gray-300 hover:bg-shell-800 hover:text-gray-100 border-l-2 border-transparent'
