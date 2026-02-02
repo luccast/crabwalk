@@ -8,6 +8,8 @@ import {
   AlertCircle,
   PanelLeft,
   PanelLeftClose,
+  Star,
+  FileText,
 } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
 import { FileTree, MarkdownViewer } from '~/components/workspace'
@@ -82,10 +84,13 @@ function WorkspacePage() {
   // Sidebar collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
+  // Starred files state
+  const [starredPaths, setStarredPaths] = useState<Set<string>>(new Set())
+
   // Root entries for FileTree
   const rootEntries = workspacePath && pathValid ? (pathCache.get(workspacePath) || []) : []
 
-  // Load saved path or default on mount
+  // Load saved path and starred files on mount
   useEffect(() => {
     const savedPath = localStorage.getItem('crabcrawl:workspacePath')
     if (savedPath) {
@@ -94,6 +99,17 @@ function WorkspacePage() {
       validatePathAndSet(savedPath)
     } else {
       loadDefaultPath()
+    }
+
+    // Load starred files
+    const savedStarred = localStorage.getItem('crabcrawl:starredFiles')
+    if (savedStarred) {
+      try {
+        const parsed = JSON.parse(savedStarred)
+        setStarredPaths(new Set(parsed))
+      } catch {
+        // ignore invalid JSON
+      }
     }
   }, [])
 
@@ -312,6 +328,21 @@ function WorkspacePage() {
     }
   }
 
+  // Handle starring/unstarring files
+  const handleStar = useCallback((filePath: string) => {
+    setStarredPaths((prev) => {
+      const next = new Set(prev)
+      if (next.has(filePath)) {
+        next.delete(filePath)
+      } else {
+        next.add(filePath)
+      }
+      // Persist to localStorage
+      localStorage.setItem('crabcrawl:starredFiles', JSON.stringify([...next]))
+      return next
+    })
+  }, [])
+
 
 
   return (
@@ -436,6 +467,92 @@ function WorkspacePage() {
             </div>
           </div>
 
+          {/* Starred files section */}
+          {starredPaths.size > 0 && (
+            <>
+              {sidebarCollapsed ? (
+                // Collapsed: stacked file icons
+                <div className="flex flex-col items-center gap-1 py-2 border-b border-shell-800">
+                  {[...starredPaths].slice(0, 5).map((filePath) => {
+                    const fileName = filePath.split('/').pop() || filePath
+                    const isSelected = selectedPath === filePath
+                    return (
+                      <button
+                        key={filePath}
+                        onClick={() => handleSelect(filePath, 'file')}
+                        className={`relative p-1.5 rounded transition-colors ${
+                          isSelected ? 'bg-crab-500/20' : 'hover:bg-shell-800'
+                        }`}
+                        title={fileName}
+                      >
+                        <FileText
+                          size={16}
+                          className={isSelected ? 'text-crab-400' : 'text-shell-500'}
+                        />
+                        <Star
+                          size={8}
+                          fill="currentColor"
+                          className="absolute -top-0.5 -right-0.5 text-yellow-400"
+                        />
+                      </button>
+                    )
+                  })}
+                  {starredPaths.size > 5 && (
+                    <span className="text-[10px] text-shell-500">+{starredPaths.size - 5}</span>
+                  )}
+                </div>
+              ) : (
+                // Expanded: starred files list
+                <div className="border-b border-shell-800">
+                  <div className="px-4 py-2">
+                    <span className="font-display text-[10px] text-yellow-500/80 uppercase tracking-wider flex items-center gap-1.5">
+                      <Star size={10} fill="currentColor" />
+                      Starred
+                    </span>
+                  </div>
+                  <div className="pb-2">
+                    {[...starredPaths].map((filePath) => {
+                      const fileName = filePath.split('/').pop() || filePath
+                      const ext = fileName.includes('.') ? '.' + fileName.split('.').pop() : ''
+                      const isSelected = selectedPath === filePath
+                      return (
+                        <div
+                          key={filePath}
+                          className={`group flex items-center gap-2 px-4 py-1.5 cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-crab-500/20 text-crab-400'
+                              : 'text-gray-300 hover:bg-shell-800 hover:text-gray-100'
+                          }`}
+                          onClick={() => handleSelect(filePath, 'file')}
+                        >
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleStar(filePath)
+                            }}
+                            className="text-yellow-400 hover:text-yellow-300 flex-shrink-0"
+                            title="Unstar file"
+                          >
+                            <Star size={12} fill="currentColor" />
+                          </button>
+                          <FileText
+                            size={14}
+                            className={`flex-shrink-0 ${
+                              ext === '.md' ? 'text-crab-400' : 'text-shell-500'
+                            }`}
+                          />
+                          <span className="font-console text-sm truncate flex-1">
+                            {fileName}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
           {/* File tree */}
           {!sidebarCollapsed && (
             <div className="flex-1 overflow-auto py-2">
@@ -445,6 +562,8 @@ function WorkspacePage() {
                   selectedPath={selectedPath}
                   onSelect={handleSelect}
                   onLoadDirectory={handleLoadDirectory}
+                  onStar={handleStar}
+                  starredPaths={starredPaths}
                 />
               ) : (
                 <div className="p-4 text-center">

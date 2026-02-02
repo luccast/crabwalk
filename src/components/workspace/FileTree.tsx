@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { ChevronRight, ChevronDown, Folder, FolderOpen, FileText } from 'lucide-react'
+import { ChevronRight, ChevronDown, Folder, FolderOpen, FileText, Star } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { DirectoryEntry } from '~/lib/workspace-fs'
 
@@ -18,6 +18,8 @@ interface FileTreeProps {
   selectedPath: string | null
   onSelect: (path: string, type: 'file' | 'directory') => void
   onLoadDirectory?: (path: string) => Promise<DirectoryEntry[]>
+  onStar?: (path: string) => void
+  starredPaths?: Set<string>
   level?: number
 }
 
@@ -26,10 +28,13 @@ interface FileTreeItemProps {
   selectedPath: string | null
   onSelect: (path: string, type: 'file' | 'directory') => void
   onLoadDirectory?: (path: string) => Promise<DirectoryEntry[]>
+  onStar?: (path: string) => void
+  starredPaths?: Set<string>
   level: number
 }
 
-function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }: FileTreeItemProps) {
+function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onStar, starredPaths, level }: FileTreeItemProps) {
+  const isStarred = starredPaths?.has(entry.path) ?? false
   const [expanded, setExpanded] = useState(false)
   const [children, setChildren] = useState<DirectoryEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -90,7 +95,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }:
       <motion.div
         onClick={handleClick}
         style={{ paddingLeft }}
-        className={`w-full flex items-center gap-2 py-1.5 pr-3 text-left transition-all duration-150 rounded-md mx-1 cursor-pointer ${
+        className={`group w-full flex items-center gap-2 py-1.5 pr-3 text-left transition-all duration-150 rounded-md mx-1 cursor-pointer ${
           isSelected
             ? 'bg-crab-500/20 text-crab-400 border-l-2 border-crab-400'
             : 'text-gray-300 hover:bg-shell-800 hover:text-gray-100 border-l-2 border-transparent'
@@ -152,6 +157,24 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }:
             {entry.size !== undefined && formatFileSize(entry.size)}
           </span>
         )}
+
+        {/* Star button for files */}
+        {!isDirectory && onStar && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onStar(entry.path)
+            }}
+            className={`p-0.5 rounded transition-colors flex-shrink-0 ${
+              isStarred
+                ? 'text-yellow-400 hover:text-yellow-300'
+                : 'text-shell-600 hover:text-yellow-400 opacity-0 group-hover:opacity-100'
+            }`}
+            title={isStarred ? 'Unstar file' : 'Star file'}
+          >
+            <Star size={12} fill={isStarred ? 'currentColor' : 'none'} />
+          </button>
+        )}
       </motion.div>
 
       {/* Children */}
@@ -172,6 +195,8 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }:
                   selectedPath={selectedPath}
                   onSelect={onSelect}
                   onLoadDirectory={onLoadDirectory}
+                  onStar={onStar}
+                  starredPaths={starredPaths}
                   level={level + 1}
                 />
               ))
@@ -187,7 +212,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }:
   )
 }
 
-export function FileTree({ entries, selectedPath, onSelect, onLoadDirectory, level = 0 }: FileTreeProps) {
+export function FileTree({ entries, selectedPath, onSelect, onLoadDirectory, onStar, starredPaths, level = 0 }: FileTreeProps) {
   return (
     <div className="py-1">
       {entries.map((entry) => (
@@ -197,6 +222,8 @@ export function FileTree({ entries, selectedPath, onSelect, onLoadDirectory, lev
           selectedPath={selectedPath}
           onSelect={onSelect}
           onLoadDirectory={onLoadDirectory}
+          onStar={onStar}
+          starredPaths={starredPaths}
           level={level}
         />
       ))}
