@@ -613,6 +613,7 @@ function WorkspacePage() {
             onRefresh={handleRefresh}
             loading={loading}
             pathValid={pathValid}
+            currentPath={workspacePathInput}
           />
           <MobileFileDrawer
             open={fileDrawerOpen}
