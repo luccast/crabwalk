@@ -12,8 +12,15 @@ import {
   FileText,
 } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
-import { FileTree, MarkdownViewer } from '~/components/workspace'
+import {
+  FileTree,
+  MarkdownViewer,
+  MobileBottomToolbar,
+  MobileFileDrawer,
+  MobilePathSheet,
+} from '~/components/workspace'
 import { CrabIdleAnimation } from '~/components/ani'
+import { useIsMobile } from '~/hooks/useIsMobile'
 import type { DirectoryEntry } from '~/lib/workspace-fs'
 
 // Get parent directory path using path separator logic
@@ -86,6 +93,11 @@ function WorkspacePage() {
 
   // Starred files state
   const [starredPaths, setStarredPaths] = useState<Set<string>>(new Set())
+
+  // Mobile state
+  const isMobile = useIsMobile()
+  const [fileDrawerOpen, setFileDrawerOpen] = useState(false)
+  const [pathSheetOpen, setPathSheetOpen] = useState(false)
 
   // Root entries for FileTree
   const rootEntries = workspacePath && pathValid ? (pathCache.get(workspacePath) || []) : []
@@ -384,10 +396,10 @@ function WorkspacePage() {
           </div>
         </div>
 
-        <div className="relative flex items-center gap-3 flex-1 max-w-2xl mx-4">
-          {/* Path input */}
+        {/* Path input - desktop only */}
+        <div className="hidden sm:flex relative items-center gap-3 flex-1 max-w-2xl mx-4">
           <div className="flex-1 flex items-center gap-2">
-            <FolderOpen size={16} className="text-shell-500 flex-shrink-0" />
+            <FolderOpen size={16} className="text-shell-500 shrink-0" />
             <input
               type="text"
               value={workspacePathInput}
@@ -412,8 +424,8 @@ function WorkspacePage() {
           )}
         </div>
 
-        <div className="relative flex items-center gap-3">
-          {/* Refresh button */}
+        {/* Refresh button - desktop only */}
+        <div className="hidden sm:flex relative items-center gap-3">
           <button
             onClick={handleRefresh}
             disabled={!pathValid || loading}
@@ -430,13 +442,14 @@ function WorkspacePage() {
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <motion.div
-          initial={false}
-          animate={{ width: sidebarCollapsed ? 56 : 320 }}
-          transition={{ duration: 0.2, ease: 'easeInOut' }}
-          className="border-r border-shell-800 bg-shell-900/50 flex flex-col overflow-hidden"
-        >
+        {/* Sidebar - desktop only */}
+        {!isMobile && (
+          <motion.div
+            initial={false}
+            animate={{ width: sidebarCollapsed ? 56 : 320 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="border-r border-shell-800 bg-shell-900/50 flex flex-col overflow-hidden"
+          >
           {/* Sidebar header */}
           <div className={`flex items-center justify-between px-3 py-3 border-b border-shell-800 ${sidebarCollapsed ? 'justify-center' : ''}`}>
             {!sidebarCollapsed && (
@@ -574,9 +587,10 @@ function WorkspacePage() {
             </div>
           )}
         </motion.div>
+        )}
 
         {/* Main content area */}
-        <div className="flex-1 relative bg-shell-950">
+        <div className={`flex-1 relative bg-shell-950 ${isMobile ? 'pb-20' : ''}`}>
           <MarkdownViewer
             content={selectedFileContent}
             fileName={selectedFileName}
@@ -589,6 +603,41 @@ function WorkspacePage() {
           />
         </div>
       </div>
+
+      {/* Mobile components */}
+      {isMobile && (
+        <>
+          <MobileBottomToolbar
+            onOpenDrawer={() => setFileDrawerOpen(true)}
+            onOpenPathSheet={() => setPathSheetOpen(true)}
+            onRefresh={handleRefresh}
+            loading={loading}
+            pathValid={pathValid}
+          />
+          <MobileFileDrawer
+            open={fileDrawerOpen}
+            onClose={() => setFileDrawerOpen(false)}
+            entries={rootEntries}
+            selectedPath={selectedPath}
+            starredPaths={starredPaths}
+            workspacePath={workspacePath}
+            pathValid={pathValid}
+            onSelect={handleSelect}
+            onLoadDirectory={handleLoadDirectory}
+            onStar={handleStar}
+          />
+          <MobilePathSheet
+            open={pathSheetOpen}
+            onClose={() => setPathSheetOpen(false)}
+            initialPath={workspacePathInput}
+            pathError={pathError}
+            onValidate={async (path) => {
+              await validatePathAndSet(path)
+              return pathValid
+            }}
+          />
+        </>
+      )}
     </div>
   )
 }

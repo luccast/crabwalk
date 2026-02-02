@@ -433,3 +433,8 @@ code, pre {
   @apply focus:outline-none focus:border-crab-500 focus:ring-2 focus:ring-crab-500/20;
   @apply transition-all duration-150;
 }
+
+/* Safe area padding for iOS */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
