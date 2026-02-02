@@ -503,51 +503,43 @@ function WorkspacePage() {
                 </div>
               ) : (
                 // Expanded: starred files list
-                <div className="border-b border-shell-800">
-                  <div className="px-4 py-2">
-                    <span className="font-display text-[10px] text-yellow-500/80 uppercase tracking-wider flex items-center gap-1.5">
-                      <Star size={10} fill="currentColor" />
-                      Starred
-                    </span>
-                  </div>
-                  <div className="pb-2">
-                    {[...starredPaths].map((filePath) => {
-                      const fileName = filePath.split('/').pop() || filePath
-                      const ext = fileName.includes('.') ? '.' + fileName.split('.').pop() : ''
-                      const isSelected = selectedPath === filePath
-                      return (
-                        <div
-                          key={filePath}
-                          className={`group flex items-center gap-2 px-4 py-1.5 cursor-pointer transition-colors ${
-                            isSelected
-                              ? 'bg-crab-500/20 text-crab-400'
-                              : 'text-gray-300 hover:bg-shell-800 hover:text-gray-100'
+                <div className="border-b border-shell-800 py-2">
+                  {[...starredPaths].map((filePath) => {
+                    const fileName = filePath.split('/').pop() || filePath
+                    const ext = fileName.includes('.') ? '.' + fileName.split('.').pop() : ''
+                    const isSelected = selectedPath === filePath
+                    return (
+                      <div
+                        key={filePath}
+                        className={`group flex items-center gap-2 px-4 py-1.5 cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-crab-500/20 text-crab-400'
+                            : 'text-gray-300 hover:bg-shell-800 hover:text-gray-100'
+                        }`}
+                        onClick={() => handleSelect(filePath, 'file')}
+                      >
+                        <FileText
+                          size={14}
+                          className={`flex-shrink-0 ${
+                            ext === '.md' ? 'text-crab-400' : 'text-shell-500'
                           }`}
-                          onClick={() => handleSelect(filePath, 'file')}
+                        />
+                        <span className="font-console text-sm truncate flex-1">
+                          {fileName}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleStar(filePath)
+                          }}
+                          className="text-yellow-400 hover:text-yellow-300 flex-shrink-0"
+                          title="Unstar file"
                         >
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleStar(filePath)
-                            }}
-                            className="text-yellow-400 hover:text-yellow-300 flex-shrink-0"
-                            title="Unstar file"
-                          >
-                            <Star size={12} fill="currentColor" />
-                          </button>
-                          <FileText
-                            size={14}
-                            className={`flex-shrink-0 ${
-                              ext === '.md' ? 'text-crab-400' : 'text-shell-500'
-                            }`}
-                          />
-                          <span className="font-console text-sm truncate flex-1">
-                            {fileName}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
+                          <Star size={14} fill="currentColor" />
+                        </button>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </>
@@ -562,8 +554,6 @@ function WorkspacePage() {
                   selectedPath={selectedPath}
                   onSelect={handleSelect}
                   onLoadDirectory={handleLoadDirectory}
-                  onStar={handleStar}
-                  starredPaths={starredPaths}
                 />
               ) : (
                 <div className="p-4 text-center">
@@ -590,9 +580,12 @@ function WorkspacePage() {
           <MarkdownViewer
             content={selectedFileContent}
             fileName={selectedFileName}
+            filePath={selectedPath ?? undefined}
             fileSize={selectedFileSize}
             fileModified={selectedFileModified}
             error={fileError}
+            isStarred={selectedPath ? starredPaths.has(selectedPath) : false}
+            onStar={handleStar}
           />
         </div>
       </div>

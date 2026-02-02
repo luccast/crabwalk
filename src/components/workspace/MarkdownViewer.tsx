@@ -1,14 +1,17 @@
 import { useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { FileText, AlertCircle } from 'lucide-react'
+import { FileText, AlertCircle, Star } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 interface MarkdownViewerProps {
   content: string
   fileName: string
+  filePath?: string
   fileSize?: number
   fileModified?: Date
   error?: string
+  isStarred?: boolean
+  onStar?: (path: string) => void
 }
 
 // Format file size to human-readable format
@@ -45,7 +48,7 @@ function formatModifiedDate(date: Date | undefined): string {
   }
 }
 
-export function MarkdownViewer({ content, fileName, fileSize, fileModified, error }: MarkdownViewerProps) {
+export function MarkdownViewer({ content, fileName, filePath, fileSize, fileModified, error, isStarred, onStar }: MarkdownViewerProps) {
   const isMarkdown = useMemo(() => {
     return fileName.toLowerCase().endsWith('.md') || fileName.toLowerCase().endsWith('.markdown')
   }, [fileName])
@@ -96,6 +99,20 @@ export function MarkdownViewer({ content, fileName, fileSize, fileModified, erro
     <div className="h-full flex flex-col">
       {/* File header */}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-shell-800 bg-shell-900/50">
+        {/* Star button */}
+        {filePath && onStar && (
+          <button
+            onClick={() => onStar(filePath)}
+            className={`p-1 rounded transition-colors ${
+              isStarred
+                ? 'text-yellow-400 hover:text-yellow-300'
+                : 'text-shell-600 hover:text-yellow-400'
+            }`}
+            title={isStarred ? 'Unstar file' : 'Star file'}
+          >
+            <Star size={16} fill={isStarred ? 'currentColor' : 'none'} />
+          </button>
+        )}
         <FileText size={18} className={isMarkdown ? 'text-crab-400' : 'text-shell-500'} />
         <h2 className="font-display text-sm text-gray-200">{fileName}</h2>
         {isMarkdown && (
