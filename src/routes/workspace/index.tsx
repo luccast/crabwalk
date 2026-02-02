@@ -19,6 +19,7 @@ import {
   MobileFileDrawer,
   MobilePathSheet,
 } from '~/components/workspace'
+import { NavTabs } from '~/components/navigation'
 import { CrabIdleAnimation } from '~/components/ani'
 import { useIsMobile } from '~/hooks/useIsMobile'
 import type { DirectoryEntry } from '~/lib/workspace-fs'
@@ -373,27 +374,7 @@ function WorkspacePage() {
           </Link>
 
           {/* Navigation tabs */}
-          <div className="flex items-center gap-1">
-            {/* Monitor tab - inactive */}
-            <Link
-              to="/monitor"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-shell-800 transition-all border border-transparent hover:border-shell-600"
-            >
-              <span className="font-arcade text-xs text-gray-500 tracking-wider">
-                MONITOR
-              </span>
-            </Link>
-
-            {/* Workspace tab - active */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-crab-900/30 border border-crab-700/30">
-              <div className="crab-icon-glow">
-                <CrabIdleAnimation className="w-5 h-5" />
-              </div>
-              <span className="font-arcade text-xs text-crab-400 glow-red tracking-wider">
-                WORKSPACE
-              </span>
-            </div>
-          </div>
+          <NavTabs />
         </div>
 
         {/* Path input - desktop only */}

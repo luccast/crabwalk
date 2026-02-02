@@ -4,6 +4,7 @@ import { useLiveQuery } from '@tanstack/react-db'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Loader2, HardDrive, Trash2 } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
+import { NavTabs } from '~/components/navigation'
 import {
   sessionsCollection,
   actionsCollection,
@@ -379,27 +380,11 @@ function MonitorPage() {
           </Link>
 
           {/* Navigation tabs */}
-          <div className="flex items-center gap-1">
-            {/* Monitor tab - active */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-crab-900/30 border border-crab-700/30">
-              <div className="crab-icon-glow">
-                <CrabIdleAnimation className="w-5 h-5" />
-              </div>
-              <span className="font-arcade text-xs text-crab-400 glow-red tracking-wider">
-                MONITOR
-              </span>
-              <StatusIndicator status={connecting ? 'thinking' : connected ? 'active' : 'idle'} />
-            </div>
+          <NavTabs />
 
-            {/* Workspace tab - inactive */}
-            <Link
-              to="/workspace"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-shell-800 transition-all border border-transparent hover:border-shell-600"
-            >
-              <span className="font-arcade text-xs text-gray-500 tracking-wider">
-                WORKSPACE
-              </span>
-            </Link>
+          {/* Connection status */}
+          <div className="flex items-center gap-2 ml-2">
+            <StatusIndicator status={connecting ? 'thinking' : connected ? 'active' : 'idle'} />
           </div>
         </div>
 
