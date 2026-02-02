@@ -49,7 +49,7 @@ export class ClawdbotClient {
       const timeout = setTimeout(() => {
         this._connecting = false
         this.ws?.close()
-        reject(new Error('Connection timeout - is clawdbot gateway running?'))
+        reject(new Error('Connection timeout - is openclaw gateway running?'))
       }, 10000)
 
       try {
@@ -77,7 +77,7 @@ export class ClawdbotClient {
 
           this.handleMessage(msg, resolve, reject, timeout)
         } catch (e) {
-          console.error('[clawdbot] Failed to parse message:', e)
+          console.error('[openclaw] Failed to parse message:', e)
         }
       })
 

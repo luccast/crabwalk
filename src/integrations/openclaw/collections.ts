@@ -84,21 +84,21 @@ function inferSpawnedBy(subagentKey: string, timestamp?: number): string | undef
 
 export const sessionsCollection = createCollection(
   localOnlyCollectionOptions<MonitorSession>({
-    id: 'clawdbot-sessions',
+    id: 'openclaw-sessions',
     getKey: (item) => item.key,
   })
 )
 
 export const actionsCollection = createCollection(
   localOnlyCollectionOptions<MonitorAction>({
-    id: 'clawdbot-actions',
+    id: 'openclaw-actions',
     getKey: (item) => item.id,
   })
 )
 
 export const execsCollection = createCollection(
   localOnlyCollectionOptions<MonitorExecProcess>({
-    id: 'clawdbot-execs',
+    id: 'openclaw-execs',
     getKey: (item) => item.id,
   })
 )

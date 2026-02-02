@@ -15,7 +15,7 @@ import {
   clearCollections,
   hydrateFromServer,
   clearCompletedExecs,
-} from '~/integrations/clawdbot'
+} from '~/integrations/openclaw'
 import {
   ActionGraph,
   SessionList,
@@ -112,7 +112,7 @@ function MonitorPage() {
 
   const checkPersistenceStatus = async () => {
     try {
-      const status = await trpc.clawdbot.persistenceStatus.query()
+      const status = await trpc.openclaw.persistenceStatus.query()
       setPersistenceEnabled(status.enabled)
       setPersistenceStartedAt(status.startedAt)
       setPersistenceSessionCount(status.sessionCount)
@@ -124,7 +124,7 @@ function MonitorPage() {
 
   const checkStatus = async () => {
     try {
-      const status = await trpc.clawdbot.status.query()
+      const status = await trpc.openclaw.status.query()
       setConnected(status.connected)
     } catch {
       setConnected(false)
@@ -135,7 +135,7 @@ function MonitorPage() {
     setConnecting(true)
     setRetryCount(retry)
     try {
-      const result = await trpc.clawdbot.connect.mutate()
+      const result = await trpc.openclaw.connect.mutate()
       if (result.status === 'connected' || result.status === 'already_connected') {
         setConnected(true)
         setRetryCount(0)
@@ -158,9 +158,9 @@ function MonitorPage() {
 
   const hydrateFromPersistence = async () => {
     try {
-      const status = await trpc.clawdbot.persistenceStatus.query()
+      const status = await trpc.openclaw.persistenceStatus.query()
       if (status.sessionCount > 0 || status.actionCount > 0 || status.execEventCount > 0) {
-        const data = await trpc.clawdbot.persistenceHydrate.query()
+        const data = await trpc.openclaw.persistenceHydrate.query()
         hydrateFromServer(data.sessions, data.actions, data.execEvents ?? [])
         console.log(
           `[monitor] hydrated ${data.sessions.length} sessions, ${data.actions.length} actions, ${(data.execEvents ?? []).length} exec events`
@@ -177,7 +177,7 @@ function MonitorPage() {
 
   const handleDisconnect = async () => {
     try {
-      await trpc.clawdbot.disconnect.mutate()
+      await trpc.openclaw.disconnect.mutate()
       setConnected(false)
       clearCollections()
     } catch (e) {
@@ -187,7 +187,7 @@ function MonitorPage() {
 
   const loadSessions = async () => {
     try {
-      const result = await trpc.clawdbot.sessions.query(
+      const result = await trpc.openclaw.sessions.query(
         historicalMode ? { activeMinutes: 1440 } : { activeMinutes: 60 }
       )
       if (result.sessions) {
@@ -214,7 +214,7 @@ function MonitorPage() {
   const handleDebugModeChange = async (enabled: boolean) => {
     setDebugMode(enabled)
     try {
-      await trpc.clawdbot.setDebugMode.mutate({ enabled })
+      await trpc.openclaw.setDebugMode.mutate({ enabled })
     } catch (e) {
       console.error('Failed to set debug mode:', e)
     }
@@ -223,7 +223,7 @@ function MonitorPage() {
   const handleLogCollectionChange = async (enabled: boolean) => {
     setLogCollection(enabled)
     try {
-      const result = await trpc.clawdbot.setLogCollection.mutate({ enabled })
+      const result = await trpc.openclaw.setLogCollection.mutate({ enabled })
       setLogCount(result.eventCount)
     } catch (e) {
       console.error('Failed to set log collection:', e)
@@ -232,12 +232,12 @@ function MonitorPage() {
 
   const handleDownloadLogs = async () => {
     try {
-      const result = await trpc.clawdbot.downloadLogs.query()
+      const result = await trpc.openclaw.downloadLogs.query()
       const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `clawdbot-events-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`
+      a.download = `openclaw-events-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -249,7 +249,7 @@ function MonitorPage() {
 
   const handleClearLogs = async () => {
     try {
-      await trpc.clawdbot.clearLogs.mutate()
+      await trpc.openclaw.clearLogs.mutate()
       setLogCount(0)
     } catch (e) {
       console.error('Failed to clear logs:', e)
@@ -258,7 +258,7 @@ function MonitorPage() {
 
   const handlePersistenceStart = async () => {
     try {
-      const result = await trpc.clawdbot.persistenceStart.mutate()
+      const result = await trpc.openclaw.persistenceStart.mutate()
       setPersistenceEnabled(result.enabled)
       setPersistenceStartedAt(result.startedAt)
     } catch (e) {
@@ -268,7 +268,7 @@ function MonitorPage() {
 
   const handlePersistenceStop = async () => {
     try {
-      const result = await trpc.clawdbot.persistenceStop.mutate()
+      const result = await trpc.openclaw.persistenceStop.mutate()
       setPersistenceEnabled(result.enabled)
       setPersistenceStartedAt(null)
     } catch (e) {
@@ -278,7 +278,7 @@ function MonitorPage() {
 
   const handlePersistenceClear = async () => {
     try {
-      await trpc.clawdbot.persistenceClear.mutate()
+      await trpc.openclaw.persistenceClear.mutate()
       setPersistenceSessionCount(0)
       setPersistenceActionCount(0)
       clearCollections()
@@ -292,7 +292,7 @@ function MonitorPage() {
     if (!logCollection) return
     const interval = setInterval(async () => {
       try {
-        const result = await trpc.clawdbot.getLogCollection.query()
+        const result = await trpc.openclaw.getLogCollection.query()
         setLogCount(result.eventCount)
       } catch {
         // ignore
@@ -305,7 +305,7 @@ function MonitorPage() {
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const status = await trpc.clawdbot.persistenceStatus.query()
+        const status = await trpc.openclaw.persistenceStatus.query()
         setPersistenceEnabled(status.enabled)
         setPersistenceStartedAt(status.startedAt)
         setPersistenceSessionCount(status.sessionCount)
@@ -341,7 +341,7 @@ function MonitorPage() {
   useEffect(() => {
     if (!connected) return
 
-    const subscription = trpc.clawdbot.events.subscribe(undefined, {
+    const subscription = trpc.openclaw.events.subscribe(undefined, {
       onData: (data) => {
         if (data.type === 'session' && data.session?.key && data.session.status) {
           updateSessionStatus(data.session.key, data.session.status)

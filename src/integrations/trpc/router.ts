@@ -2,15 +2,15 @@ import { initTRPC } from '@trpc/server'
 import { observable } from '@trpc/server/observable'
 import superjson from 'superjson'
 import { z } from 'zod'
-import { getClawdbotClient } from '~/integrations/clawdbot/client'
-import { getPersistenceService } from '~/integrations/clawdbot/persistence'
+import { getClawdbotClient } from '~/integrations/openclaw/client'
+import { getPersistenceService } from '~/integrations/openclaw/persistence'
 import {
   parseEventFrame,
   sessionInfoToMonitor,
   type MonitorSession,
   type MonitorAction,
   type MonitorExecEvent,
-} from '~/integrations/clawdbot'
+} from '~/integrations/openclaw'
 import {
   listDirectory,
   readFile,
@@ -36,7 +36,7 @@ export const router = t.router
 export const publicProcedure = t.procedure
 
 // Clawdbot router
-const clawdbotRouter = router({
+const openclawRouter = router({
   connect: publicProcedure.mutation(async () => {
     const client = getClawdbotClient()
     if (client.connected) {
@@ -73,7 +73,7 @@ const clawdbotRouter = router({
     .input(z.object({ enabled: z.boolean() }))
     .mutation(({ input }) => {
       debugMode = input.enabled
-      console.log(`[clawdbot] debug mode ${debugMode ? 'enabled' : 'disabled'}`)
+      console.log(`[openclaw] debug mode ${debugMode ? 'enabled' : 'disabled'}`)
       return { debugMode }
     }),
 
@@ -87,9 +87,9 @@ const clawdbotRouter = router({
     .mutation(({ input }) => {
       collectLogs = input.enabled
       if (input.enabled) {
-        console.log(`[clawdbot] log collection started`)
+        console.log(`[openclaw] log collection started`)
       } else {
-        console.log(`[clawdbot] log collection stopped, ${collectedEvents.length} events collected`)
+        console.log(`[openclaw] log collection stopped, ${collectedEvents.length} events collected`)
       }
       return { collectLogs, eventCount: collectedEvents.length }
     }),
@@ -109,7 +109,7 @@ const clawdbotRouter = router({
   clearLogs: publicProcedure.mutation(() => {
     const count = collectedEvents.length
     collectedEvents.length = 0
-    console.log(`[clawdbot] cleared ${count} collected events`)
+    console.log(`[openclaw] cleared ${count} collected events`)
     return { cleared: count }
   }),
 
@@ -303,7 +303,7 @@ export const appRouter = router({
     ]
   }),
 
-  clawdbot: clawdbotRouter,
+  openclaw: openclawRouter,
   workspace: workspaceRouter,
 })
 

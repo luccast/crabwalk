@@ -27,7 +27,7 @@ import type {
   MonitorSession,
   MonitorAction,
   MonitorExecProcess,
-} from '~/integrations/clawdbot'
+} from '~/integrations/openclaw'
 
 interface ActionGraphProps {
   sessions: MonitorSession[]

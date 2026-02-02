@@ -36,15 +36,15 @@ Full-stack React app using TanStack Start (file-based routing, SSR).
 
 **TanStack DB pattern:** Create collections, use `useLiveQuery()` for reactive reads, `createTransaction()` for writes.
 
-## Moltbot (Clawdbot) Monitor
+## OpenClaw (Clawdbot) Monitor
 
 Real-time agent activity monitor at `/monitor`.
 
 **Key paths:**
-- `src/integrations/clawdbot/` - gateway client, protocol types, parser, collections
+- `src/integrations/openclaw/` - gateway client, protocol types, parser, collections
 - `src/components/monitor/` - ReactFlow graph, session list, custom nodes
 - `src/routes/monitor/index.tsx` - main monitor page
 
-**Data flow:** clawdbot gateway (ws://127.0.0.1:18789) -> TanStack Start server (WS client) -> tRPC -> browser (TanStack DB collections -> ReactFlow)
+**Data flow:** openclaw gateway (ws://127.0.0.1:18789) -> TanStack Start server (WS client) -> tRPC -> browser (TanStack DB collections -> ReactFlow)
 
 **Config:** Set `CLAWDBOT_API_TOKEN` env var for gateway auth.

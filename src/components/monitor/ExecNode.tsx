@@ -2,7 +2,7 @@ import { memo, useCallback, useMemo, useState } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, Copy, Check, Loader2, Terminal, XCircle } from 'lucide-react'
-import type { MonitorExecProcess, MonitorExecOutputChunk } from '~/integrations/clawdbot'
+import type { MonitorExecProcess, MonitorExecOutputChunk } from '~/integrations/openclaw'
 
 interface ExecNodeProps {
   data: MonitorExecProcess

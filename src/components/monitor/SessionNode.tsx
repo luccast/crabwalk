@@ -3,7 +3,7 @@ import { Handle, Position } from '@xyflow/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, User, Clock, Copy, Check } from 'lucide-react'
 import { StatusIndicator } from './StatusIndicator'
-import type { MonitorSession } from '~/integrations/clawdbot'
+import type { MonitorSession } from '~/integrations/openclaw'
 
 interface SessionNodeProps {
   data: MonitorSession

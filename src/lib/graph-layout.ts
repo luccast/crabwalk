@@ -3,7 +3,7 @@ import type {
   MonitorSession,
   MonitorAction,
   MonitorExecProcess,
-} from '~/integrations/clawdbot'
+} from '~/integrations/openclaw'
 
 /** Cast domain data to ReactFlow's Node data type */
 function nodeData<T>(data: T): Record<string, unknown> {

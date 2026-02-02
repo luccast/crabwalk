@@ -21,8 +21,8 @@ get_version() {
 
 # Auto-detect token from OpenClaw config
 auto_token() {
-  if [ -f "$HOME/.clawdbot/clawdbot.json" ]; then
-    python3 -c "import json,os; print(json.load(open(os.path.expanduser('~/.clawdbot/clawdbot.json')))['gateway']['auth']['token'])" 2>/dev/null || true
+  if [ -f "$HOME/.openclaw/openclaw.json" ]; then
+    python3 -c "import json,os; print(json.load(open(os.path.expanduser('~/.openclaw/openclaw.json')))['gateway']['auth']['token'])" 2>/dev/null || true
   fi
 }
 

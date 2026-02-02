@@ -12,7 +12,7 @@ Watch your AI agents work across WhatsApp, Telegram, Discord, and Slack in a liv
 
 - **Live activity graph** - ReactFlow visualization of agent sessions and action chains
 - **Multi-platform** - Monitor agents across all messaging platforms simultaneously
-- **Real-time streaming** - WebSocket connection to clawdbot gateway
+- **Real-time streaming** - WebSocket connection to openclaw gateway
 - **Action tracing** - Expand nodes to inspect tool args and payloads
 - **Session filtering** - Filter by platform, search by recipient
 
@@ -115,23 +115,23 @@ Requires OpenClaw gateway running on the same machine.
 
 ### Gateway Token
 
-Find your token in the clawdbot config file:
+Find your token in the openclaw config file:
 
 ```bash
 # Look for gateway.auth.token
-cat ~/.clawdbot/clawdbot.json | rg "gateway\.auth\.token"
+cat ~/.openclaw/openclaw.json | rg "gateway\.auth\.token"
 ```
 
 Or with jq:
 
 ```bash
-jq '.gateway.auth.token' ~/.clawdbot/clawdbot.json
+jq '.gateway.auth.token' ~/.openclaw/openclaw.json
 ```
 
 Or copy it directly:
 
 ```bash
-export CLAWDBOT_API_TOKEN=$(python3 -c "import json,os; print(json.load(open(os.path.expanduser('~/.clawdbot/clawdbot.json')))['gateway']['auth']['token'])")
+export CLAWDBOT_API_TOKEN=$(python3 -c "import json,os; print(json.load(open(os.path.expanduser('~/.openclaw/openclaw.json')))['gateway']['auth']['token'])")
 ```
 
 ## Stack

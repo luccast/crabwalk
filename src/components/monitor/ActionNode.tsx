@@ -11,7 +11,7 @@ import {
   MessageCircle,
   Bot,
 } from 'lucide-react'
-import type { MonitorAction } from '~/integrations/clawdbot'
+import type { MonitorAction } from '~/integrations/openclaw'
 
 interface ActionNodeProps {
   data: MonitorAction

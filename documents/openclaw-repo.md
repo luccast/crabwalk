@@ -1,9 +1,9 @@
 # Overview
-Repo: clawdbot/clawdbot
+Repo: openclaw/openclaw
 Ref: 50b4126c79536a9645cddcfe6801916b5f6d9343
-Base URL: https://codebase.md/clawdbot/clawdbot
+Base URL: https://codebase.md/openclaw/openclaw
 Note: This repo is currently being built in the background.
-Status: /status/clawdbot/clawdbot/50b4126c79536a9645cddcfe6801916b5f6d9343
+Status: /status/openclaw/openclaw/50b4126c79536a9645cddcfe6801916b5f6d9343
 Estimated build time: ~96 seconds.
 Try again in 60 seconds.
 

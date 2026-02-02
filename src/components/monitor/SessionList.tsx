@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, ChevronLeft, ChevronRight, ChevronDown, Github } from "lucide-react";
 import { StatusIndicator } from "./StatusIndicator";
-import type { MonitorSession } from "~/integrations/clawdbot";
+import type { MonitorSession } from "~/integrations/openclaw";
 
 function isSubagent(session: MonitorSession): boolean {
   return Boolean(session.spawnedBy) || session.platform === "subagent" || session.key.includes("subagent");

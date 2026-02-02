@@ -58,7 +58,7 @@ Options:
   -p, --port <port>      Server port (default: 3000)
   -H, --host <host>      Bind address (default: 0.0.0.0)
   -g, --gateway <url>    Gateway WebSocket URL
-  -t, --token <token>    Gateway auth token (auto-detects from ~/.clawdbot/clawdbot.json)
+  -t, --token <token>    Gateway auth token (auto-detects from ~/.openclaw/openclaw.json)
   -d, --daemon           Run in background
   -v, --version          Show version
   -h, --help             Show help
