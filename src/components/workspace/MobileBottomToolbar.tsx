@@ -41,7 +41,7 @@ export function MobileBottomToolbar({
             className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-shell-800 border border-shell-700 rounded-lg active:border-crab-500 transition-colors min-h-[44px]"
           >
             <FolderOpen size={16} className={pathValid ? 'text-crab-400 shrink-0' : 'text-shell-500 shrink-0'} />
-            <span className={`font-console text-sm truncate text-left ${pathValid ? 'text-gray-300' : 'text-shell-500'}`}>
+            <span className={`font-console text-sm truncate text-left ${currentPath ? 'text-gray-200' : 'text-shell-500'}`}>
               {currentPath || 'Set workspace path...'}
             </span>
           </button>
