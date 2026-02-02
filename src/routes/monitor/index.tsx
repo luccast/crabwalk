@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useLiveQuery } from '@tanstack/react-db'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Loader2, HardDrive, Trash2 } from 'lucide-react'
+import { Activity, Loader2, HardDrive, Trash2 } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
+import { CommandNav } from '~/components/navigation'
 import {
   sessionsCollection,
   actionsCollection,
@@ -22,7 +23,6 @@ import {
   SettingsPanel,
   StatusIndicator,
 } from '~/components/monitor'
-import { CrabIdleAnimation } from '~/components/ani'
 
 export const Route = createFileRoute('/monitor/')({
   component: MonitorPageWrapper,
@@ -41,15 +41,20 @@ function MonitorPageWrapper() {
           animate={{ opacity: 1 }}
           className="flex flex-col items-center gap-4"
         >
-          <div className="crab-icon-glow">
-            <CrabIdleAnimation className="w-16 h-16" />
+          {/* Geometric loading indicator */}
+          <div className="relative w-16 h-16">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              className="absolute inset-0 border-2 border-shell-700 border-t-crab-500 rounded-lg"
+            />
+            <div className="absolute inset-2 bg-shell-900 rounded flex items-center justify-center">
+              <Activity size={20} className="text-crab-400" />
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Loader2 size={18} className="animate-spin text-crab-400" />
-            <span className="font-display text-sm text-gray-400 tracking-wide uppercase">
-              Loading Monitor...
-            </span>
-          </div>
+          <span className="font-console text-xs text-shell-500 tracking-widest uppercase">
+            Loading Monitor
+          </span>
         </motion.div>
       </div>
     )
@@ -365,41 +370,32 @@ function MonitorPage() {
 
   return (
     <div className="h-screen flex flex-col bg-shell-950 text-white overflow-hidden">
+      {/* Global navigation */}
+      <CommandNav />
+
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-shell-900 relative">
+      <header className="flex items-center justify-between px-4 py-3 bg-shell-900/80 backdrop-blur-sm relative z-30">
         {/* Gradient accent */}
         <div className="absolute inset-0 bg-linear-to-r from-crab-950/20 via-transparent to-transparent pointer-events-none" />
 
+        {/* Spacer for nav + connection status */}
         <div className="relative flex items-center gap-4">
-          <Link
-            to="/"
-            className="p-2 hover:bg-shell-800 rounded-lg transition-all border border-transparent hover:border-shell-600 group"
-          >
-            <ArrowLeft size={18} className="text-gray-400 group-hover:text-crab-400" />
-          </Link>
+          <div className="w-48" />
 
-          {/* Navigation tabs */}
-          <div className="flex items-center gap-1">
-            {/* Monitor tab - active */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-crab-900/30 border border-crab-700/30">
-              <div className="crab-icon-glow">
-                <CrabIdleAnimation className="w-5 h-5" />
-              </div>
-              <span className="font-arcade text-xs text-crab-400 glow-red tracking-wider">
-                MONITOR
-              </span>
-              <StatusIndicator status={connecting ? 'thinking' : connected ? 'active' : 'idle'} />
-            </div>
-
-            {/* Workspace tab - inactive */}
-            <Link
-              to="/workspace"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-shell-800 transition-all border border-transparent hover:border-shell-600"
-            >
-              <span className="font-arcade text-xs text-gray-500 tracking-wider">
-                WORKSPACE
-              </span>
-            </Link>
+          {/* Connection status pill */}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
+            connected
+              ? 'bg-neon-mint/10 border-neon-mint/30'
+              : connecting
+              ? 'bg-neon-peach/10 border-neon-peach/30'
+              : 'bg-shell-800/50 border-shell-700'
+          }`}>
+            <StatusIndicator status={connecting ? 'thinking' : connected ? 'active' : 'idle'} />
+            <span className={`font-console text-xs ${
+              connected ? 'text-neon-mint' : connecting ? 'text-neon-peach' : 'text-shell-500'
+            }`}>
+              {connected ? 'CONNECTED' : connecting ? 'CONNECTING' : 'DISCONNECTED'}
+            </span>
           </div>
         </div>
 

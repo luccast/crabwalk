@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { motion } from 'framer-motion'
 import {
-  ArrowLeft,
   FolderOpen,
+  FolderTree,
   RefreshCw,
   AlertCircle,
   PanelLeft,
@@ -12,6 +12,7 @@ import {
   FileText,
 } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
+import { CommandNav } from '~/components/navigation'
 import {
   FileTree,
   MarkdownViewer,
@@ -19,7 +20,6 @@ import {
   MobileFileDrawer,
   MobilePathSheet,
 } from '~/components/workspace'
-import { CrabIdleAnimation } from '~/components/ani'
 import { useIsMobile } from '~/hooks/useIsMobile'
 import type { DirectoryEntry } from '~/lib/workspace-fs'
 
@@ -53,14 +53,20 @@ function WorkspacePageWrapper() {
           animate={{ opacity: 1 }}
           className="flex flex-col items-center gap-4"
         >
-          <div className="crab-icon-glow">
-            <CrabIdleAnimation className="w-16 h-16" />
+          {/* Geometric loading indicator */}
+          <div className="relative w-16 h-16">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              className="absolute inset-0 border-2 border-shell-700 border-t-crab-500 rounded-lg"
+            />
+            <div className="absolute inset-2 bg-shell-900 rounded flex items-center justify-center">
+              <FolderTree size={20} className="text-crab-400" />
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="font-display text-sm text-gray-400 tracking-wide uppercase">
-              Loading Workspace...
-            </span>
-          </div>
+          <span className="font-console text-xs text-shell-500 tracking-widest uppercase">
+            Loading Workspace
+          </span>
         </motion.div>
       </div>
     )
@@ -359,45 +365,19 @@ function WorkspacePage() {
 
   return (
     <div className="h-screen flex flex-col bg-shell-950 text-white overflow-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-shell-900 relative">
+      {/* Global navigation */}
+      <CommandNav />
+
+      {/* Header - path controls */}
+      <header className="hidden sm:flex items-center justify-between px-4 py-3 bg-shell-900/80 backdrop-blur-sm relative z-30">
         {/* Gradient accent */}
         <div className="absolute inset-0 bg-linear-to-r from-crab-950/20 via-transparent to-transparent pointer-events-none" />
 
-        <div className="relative flex items-center gap-4">
-          <Link
-            to="/"
-            className="p-2 hover:bg-shell-800 rounded-lg transition-all border border-transparent hover:border-shell-600 group"
-          >
-            <ArrowLeft size={18} className="text-gray-400 group-hover:text-crab-400" />
-          </Link>
+        {/* Spacer for nav button */}
+        <div className="w-48" />
 
-          {/* Navigation tabs */}
-          <div className="flex items-center gap-1">
-            {/* Monitor tab - inactive */}
-            <Link
-              to="/monitor"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-shell-800 transition-all border border-transparent hover:border-shell-600"
-            >
-              <span className="font-arcade text-xs text-gray-500 tracking-wider">
-                MONITOR
-              </span>
-            </Link>
-
-            {/* Workspace tab - active */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-crab-900/30 border border-crab-700/30">
-              <div className="crab-icon-glow">
-                <CrabIdleAnimation className="w-5 h-5" />
-              </div>
-              <span className="font-arcade text-xs text-crab-400 glow-red tracking-wider">
-                WORKSPACE
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Path input - desktop only */}
-        <div className="hidden sm:flex relative items-center gap-2 flex-1 max-w-2xl mx-4">
+        {/* Path input - centered */}
+        <div className="flex relative items-center gap-2 flex-1 max-w-2xl">
           <div className="flex-1 relative">
             <FolderOpen size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-shell-500 pointer-events-none" />
             <input
@@ -429,8 +409,8 @@ function WorkspacePage() {
           )}
         </div>
 
-        {/* Refresh button - desktop only */}
-        <div className="hidden sm:flex relative items-center gap-3">
+        {/* Refresh button */}
+        <div className="flex relative items-center gap-3 ml-4">
           <button
             onClick={handleRefresh}
             disabled={!pathValid || loading}
