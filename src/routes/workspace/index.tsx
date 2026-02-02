@@ -5,7 +5,6 @@ import {
   FolderOpen,
   FolderTree,
   RefreshCw,
-  AlertCircle,
   PanelLeft,
   PanelLeftClose,
   Star,
@@ -13,8 +12,9 @@ import {
 } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
 import { CommandNav } from '~/components/navigation'
+import { AppHeader, StatusPill, IconButton, PathInput } from '~/components/layout'
 import {
-  FileTree,
+  FileTree as FileTreeComponent,
   MarkdownViewer,
   MobileBottomToolbar,
   MobileFileDrawer,
@@ -340,12 +340,6 @@ function WorkspacePage() {
     }
   }, [workspacePath, pathValid, selectedPath, loadFile])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      validateAndSetPath()
-    }
-  }
-
   // Handle starring/unstarring files
   const handleStar = useCallback((filePath: string) => {
     setStarredPaths((prev) => {
@@ -368,62 +362,34 @@ function WorkspacePage() {
       {/* Global navigation */}
       <CommandNav />
 
-      {/* Header - path controls */}
-      <header className="hidden sm:flex items-center justify-between px-4 py-3 bg-shell-900/80 backdrop-blur-sm relative z-30">
-        {/* Gradient accent */}
-        <div className="absolute inset-0 bg-linear-to-r from-crab-950/20 via-transparent to-transparent pointer-events-none" />
-
-        {/* Spacer for nav button */}
-        <div className="w-48" />
-
-        {/* Path input - centered */}
-        <div className="flex relative items-center gap-2 flex-1 max-w-2xl">
-          <div className="flex-1 relative">
-            <FolderOpen size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-shell-500 pointer-events-none" />
-            <input
-              type="text"
-              value={workspacePathInput}
-              onChange={(e) => setWorkspacePathInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Enter workspace path..."
-              className="w-full bg-shell-800 border border-shell-700 rounded-lg pl-9 pr-3 py-1.5 text-sm font-console text-gray-200 placeholder-shell-500 focus:outline-none focus:border-crab-500 focus:ring-1 focus:ring-crab-500/20"
-            />
-          </div>
-          <button
-            onClick={validateAndSetPath}
-            disabled={pathValid && workspacePathInput === workspacePath}
-            className={`px-3 py-1.5 text-sm font-display rounded-lg transition-colors shrink-0 ${
-              pathValid && workspacePathInput === workspacePath
-                ? 'bg-shell-800 text-shell-500 cursor-default'
-                : 'bg-crab-600 hover:bg-crab-500 text-white'
-            }`}
-          >
-            Open
-          </button>
-
-          {pathError && (
-            <div className="absolute top-full left-0 right-0 mt-2 px-3 py-2 bg-crab-900/90 border border-crab-700 rounded-lg flex items-center gap-2 z-50">
-              <AlertCircle size={14} className="text-crab-400" />
-              <span className="text-xs text-crab-200 font-console">{pathError}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Refresh button */}
-        <div className="flex relative items-center gap-3 ml-4">
-          <button
+      {/* Header */}
+      <AppHeader
+        left={
+          <StatusPill
+            status={pathValid ? 'active' : 'inactive'}
+            label={pathValid ? 'PATH SET' : 'NO PATH'}
+          />
+        }
+        center={
+          <PathInput
+            value={workspacePathInput}
+            onChange={setWorkspacePathInput}
+            onSubmit={validateAndSetPath}
+            placeholder="Enter workspace path..."
+            icon={<FolderOpen size={16} />}
+            submitDisabled={pathValid && workspacePathInput === workspacePath}
+            error={pathError}
+          />
+        }
+        right={
+          <IconButton
+            icon={<RefreshCw size={16} className={loading ? 'animate-spin' : ''} />}
             onClick={handleRefresh}
             disabled={!pathValid || loading}
-            className="p-2 hover:bg-shell-800 rounded-lg transition-all border border-transparent hover:border-shell-600 disabled:opacity-50 disabled:cursor-not-allowed group"
-            title="Refresh"
-          >
-            <RefreshCw
-              size={18}
-              className={`text-gray-400 group-hover:text-crab-400 ${loading ? 'animate-spin' : ''}`}
-            />
-          </button>
-        </div>
-      </header>
+            title="Refresh workspace"
+          />
+        }
+      />
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
@@ -518,7 +484,7 @@ function WorkspacePage() {
                       >
                         <FileText
                           size={14}
-                          className={`flex-shrink-0 ${
+                          className={`shrink-0 ${
                             ext === '.md' ? 'text-crab-400' : 'text-shell-500'
                           }`}
                         />
@@ -530,7 +496,7 @@ function WorkspacePage() {
                             e.stopPropagation()
                             handleStar(filePath)
                           }}
-                          className="text-yellow-400 hover:text-yellow-300 flex-shrink-0"
+                          className="text-yellow-400 hover:text-yellow-300 shrink-0"
                           title="Unstar file"
                         >
                           <Star size={14} fill="currentColor" />
@@ -547,7 +513,7 @@ function WorkspacePage() {
           {!sidebarCollapsed && (
             <div className="flex-1 overflow-auto py-2">
               {pathValid ? (
-                <FileTree
+                <FileTreeComponent
                   entries={rootEntries}
                   selectedPath={selectedPath}
                   onSelect={handleSelect}

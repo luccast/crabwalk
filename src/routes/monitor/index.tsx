@@ -1,10 +1,20 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useLiveQuery } from '@tanstack/react-db'
-import { motion } from 'framer-motion'
-import { Activity, Loader2, HardDrive, Trash2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Activity, HardDrive, Trash2, Settings } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
 import { CommandNav } from '~/components/navigation'
+import {
+  AppHeader,
+  StatusPill,
+  StatBlock,
+  StatsGroup,
+  StatsDivider,
+  BadgeCounter,
+  ServiceIndicator,
+  RetryIndicator,
+} from '~/components/layout'
 import {
   sessionsCollection,
   actionsCollection,
@@ -21,7 +31,6 @@ import {
   ActionGraph,
   SessionList,
   SettingsPanel,
-  StatusIndicator,
 } from '~/components/monitor'
 
 export const Route = createFileRoute('/monitor/')({
@@ -374,120 +383,55 @@ function MonitorPage() {
       <CommandNav />
 
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-shell-900/80 backdrop-blur-sm relative z-30">
-        {/* Gradient accent */}
-        <div className="absolute inset-0 bg-linear-to-r from-crab-950/20 via-transparent to-transparent pointer-events-none" />
-
-        {/* Spacer for nav + connection status */}
-        <div className="relative flex items-center gap-4">
-          <div className="w-48" />
-
-          {/* Connection status pill */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
-            connected
-              ? 'bg-neon-mint/10 border-neon-mint/30'
-              : connecting
-              ? 'bg-neon-peach/10 border-neon-peach/30'
-              : 'bg-shell-800/50 border-shell-700'
-          }`}>
-            <StatusIndicator status={connecting ? 'thinking' : connected ? 'active' : 'idle'} />
-            <span className={`font-console text-xs ${
-              connected ? 'text-neon-mint' : connecting ? 'text-neon-peach' : 'text-shell-500'
-            }`}>
-              {connected ? 'CONNECTED' : connecting ? 'CONNECTING' : 'DISCONNECTED'}
-            </span>
-          </div>
-        </div>
-
-        <div className="relative flex items-center gap-4">
-          {connecting && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center gap-2"
-            >
-              <Loader2 size={14} className="animate-spin text-neon-peach" />
-              <span className="font-console text-xs text-shell-400">
-                {retryCount > 0 ? `retrying (${retryCount}/${MAX_RETRIES})...` : 'connecting...'}
-              </span>
-            </motion.div>
-          )}
-
-          {/* Clear Completed button */}
-          {completedCount > 0 && (
-            <button
-              onClick={handleClearCompleted}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all bg-shell-800/50 hover:bg-crab-900/50 hover:border-crab-700/50 border border-transparent group"
-              title={`Clear ${completedCount} completed item${completedCount !== 1 ? 's' : ''}`}
-            >
-              <Trash2
-                size={14}
-                className="text-shell-400 group-hover:text-crab-400 transition-colors"
-              />
-              <span className="font-console text-xs text-shell-400 group-hover:text-crab-400 transition-colors">
-                {completedCount}
-              </span>
-            </button>
-          )}
-
-          {/* Persistence indicator */}
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
-              persistenceEnabled
-                ? 'bg-neon-mint/10 hover:bg-neon-mint/20'
-                : 'bg-shell-800/50 hover:bg-shell-700'
-            }`}
-            title={persistenceEnabled ? 'Background service running' : 'Background service stopped'}
-          >
-            <HardDrive
-              size={14}
-              className={persistenceEnabled ? 'text-neon-mint' : 'text-shell-500'}
+      <AppHeader
+        hiddenOnMobile={false}
+        left={
+          <>
+            <StatusPill
+              status={connected ? 'connected' : connecting ? 'connecting' : 'disconnected'}
             />
-            {persistenceEnabled && (
-              <span className="w-1.5 h-1.5 rounded-full bg-neon-mint animate-pulse" />
-            )}
-          </button>
+            <AnimatePresence>
+              {connecting && retryCount > 0 && (
+                <RetryIndicator retryCount={retryCount} maxRetries={MAX_RETRIES} />
+              )}
+            </AnimatePresence>
+          </>
+        }
+        right={
+          <>
+            {/* Clear completed */}
+            <BadgeCounter
+              count={completedCount}
+              icon={<Trash2 size={14} />}
+              onClick={handleClearCompleted}
+              title={`Clear ${completedCount} completed`}
+            />
 
-          {/* Stats display */}
-          <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-shell-800/50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <span className="font-console text-[10px] text-shell-500 uppercase">Sessions</span>
-              <span className="font-display text-sm text-neon-mint">{sessions.length}</span>
-            </div>
-            <div className="w-px h-4 bg-shell-700" />
-            <div className="flex items-center gap-2">
-              <span className="font-console text-[10px] text-shell-500 uppercase">Actions</span>
-              <span className="font-display text-sm text-neon-peach">{actions.length}</span>
-            </div>
-          </div>
+            {/* Persistence service */}
+            <ServiceIndicator
+              active={persistenceEnabled}
+              icon={<HardDrive size={14} />}
+              onClick={() => setSettingsOpen(true)}
+              title={persistenceEnabled ? 'Background service running' : 'Service stopped'}
+            />
 
-          <SettingsPanel
-            connected={connected}
-            historicalMode={historicalMode}
-            debugMode={debugMode}
-            logCollection={logCollection}
-            logCount={logCount}
-            persistenceEnabled={persistenceEnabled}
-            persistenceStartedAt={persistenceStartedAt}
-            persistenceSessionCount={persistenceSessionCount}
-            persistenceActionCount={persistenceActionCount}
-            open={settingsOpen}
-            onOpenChange={setSettingsOpen}
-            onHistoricalModeChange={handleHistoricalModeChange}
-            onDebugModeChange={handleDebugModeChange}
-            onLogCollectionChange={handleLogCollectionChange}
-            onDownloadLogs={handleDownloadLogs}
-            onClearLogs={handleClearLogs}
-            onConnect={handleConnect}
-            onDisconnect={handleDisconnect}
-            onRefresh={handleRefresh}
-            onPersistenceStart={handlePersistenceStart}
-            onPersistenceStop={handlePersistenceStop}
-            onPersistenceClear={handlePersistenceClear}
-          />
-        </div>
-      </header>
+            {/* Stats */}
+            <StatsGroup>
+              <StatBlock label="Sessions" value={sessions.length} color="mint" />
+              <StatsDivider />
+              <StatBlock label="Actions" value={actions.length} color="peach" />
+            </StatsGroup>
+
+            {/* Settings trigger */}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="p-2 bg-shell-800/50 hover:bg-shell-700/50 border border-shell-700/50 hover:border-shell-600 rounded-lg transition-all group"
+            >
+              <Settings size={14} className="text-gray-400 group-hover:text-crab-400 transition-colors" />
+            </button>
+          </>
+        }
+      />
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
@@ -511,6 +455,33 @@ function MonitorPage() {
           />
         </div>
       </div>
+
+      {/* Settings panel - rendered at root level to avoid z-index clipping */}
+      <SettingsPanel
+        connected={connected}
+        historicalMode={historicalMode}
+        debugMode={debugMode}
+        logCollection={logCollection}
+        logCount={logCount}
+        persistenceEnabled={persistenceEnabled}
+        persistenceStartedAt={persistenceStartedAt}
+        persistenceSessionCount={persistenceSessionCount}
+        persistenceActionCount={persistenceActionCount}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        onHistoricalModeChange={handleHistoricalModeChange}
+        onDebugModeChange={handleDebugModeChange}
+        onLogCollectionChange={handleLogCollectionChange}
+        onDownloadLogs={handleDownloadLogs}
+        onClearLogs={handleClearLogs}
+        onConnect={handleConnect}
+        onDisconnect={handleDisconnect}
+        onRefresh={handleRefresh}
+        onPersistenceStart={handlePersistenceStart}
+        onPersistenceStop={handlePersistenceStop}
+        onPersistenceClear={handlePersistenceClear}
+        hideTrigger
+      />
     </div>
   )
 }

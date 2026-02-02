@@ -25,6 +25,8 @@ interface SettingsPanelProps {
   onPersistenceStart: () => void
   onPersistenceStop: () => void
   onPersistenceClear: () => void
+  /** Hide the built-in trigger button (use when providing external trigger) */
+  hideTrigger?: boolean
 }
 
 export function SettingsPanel({
@@ -50,16 +52,19 @@ export function SettingsPanel({
   onPersistenceStart,
   onPersistenceStop,
   onPersistenceClear,
+  hideTrigger,
 }: SettingsPanelProps) {
 
   return (
     <>
-      <button
-        onClick={() => onOpenChange(true)}
-        className="p-2 bg-shell-800 hover:bg-shell-700 rounded-lg transition-all group"
-      >
-        <Settings size={14} className="text-gray-400 group-hover:text-crab-400 transition-colors" />
-      </button>
+      {!hideTrigger && (
+        <button
+          onClick={() => onOpenChange(true)}
+          className="p-2 bg-shell-800 hover:bg-shell-700 rounded-lg transition-all group"
+        >
+          <Settings size={14} className="text-gray-400 group-hover:text-crab-400 transition-colors" />
+        </button>
+      )}
 
       <AnimatePresence>
         {open && (
@@ -70,7 +75,7 @@ export function SettingsPanel({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => onOpenChange(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
             />
 
             {/* Panel */}
@@ -79,7 +84,7 @@ export function SettingsPanel({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 300 }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 h-full w-80 bg-shell-900 z-50 p-5 overflow-y-auto"
+              className="fixed right-0 top-0 h-full w-80 bg-shell-900 z-[70] p-5 overflow-y-auto"
             >
               {/* Texture overlay */}
               <div className="absolute inset-0 texture-scanlines pointer-events-none opacity-30" />

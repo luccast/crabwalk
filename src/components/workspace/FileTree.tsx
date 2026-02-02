@@ -124,14 +124,14 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }:
         {/* Icon */}
         {isDirectory ? (
           expanded ? (
-            <FolderOpen size={16} className="text-neon-mint flex-shrink-0" />
+            <FolderOpen size={16} className="text-neon-mint shrink-0" />
           ) : (
-            <Folder size={16} className="text-neon-mint flex-shrink-0" />
+            <Folder size={16} className="text-neon-mint shrink-0" />
           )
         ) : (
           <FileText
             size={16}
-            className={`flex-shrink-0 ${
+            className={`shrink-0 ${
               entry.extension === '.md' ? 'text-crab-400' : 'text-shell-500'
             }`}
           />
@@ -148,7 +148,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }:
 
         {/* Metadata for files */}
         {!isDirectory && (
-          <span className="font-console text-[10px] text-shell-600 flex-shrink-0">
+          <span className="font-console text-[10px] text-shell-600 shrink-0">
             {entry.size !== undefined && formatFileSize(entry.size)}
           </span>
         )}
