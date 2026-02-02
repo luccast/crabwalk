@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   ArrowLeft,
   FolderOpen,
@@ -400,83 +400,74 @@ function WorkspacePage() {
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <AnimatePresence initial={false}>
-          {!sidebarCollapsed && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 320, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2, ease: 'easeInOut' }}
-              className="border-r border-shell-800 bg-shell-900/50 flex flex-col overflow-hidden"
-            >
-              {/* Sidebar header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-shell-800">
-                <span className="font-display text-xs text-shell-500 uppercase tracking-wider">
-                  Files
-                </span>
-                <div className="flex items-center gap-2">
-                  {loading && (
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    >
-                      <RefreshCw size={14} className="text-shell-500" />
-                    </motion.div>
-                  )}
-                  <button
-                    onClick={() => setSidebarCollapsed(true)}
-                    className="p-1 hover:bg-shell-800 rounded transition-colors"
-                    title="Hide sidebar"
-                  >
-                    <PanelLeftClose size={14} className="text-shell-500 hover:text-crab-400" />
-                  </button>
-                </div>
-              </div>
-
-              {/* File tree */}
-              <div className="flex-1 overflow-auto py-2">
-                {pathValid ? (
-                  <FileTree
-                    entries={rootEntries}
-                    selectedPath={selectedPath}
-                    onSelect={handleSelect}
-                    onLoadDirectory={handleLoadDirectory}
-                  />
+        <motion.div
+          initial={false}
+          animate={{ width: sidebarCollapsed ? 56 : 320 }}
+          transition={{ duration: 0.2, ease: 'easeInOut' }}
+          className="border-r border-shell-800 bg-shell-900/50 flex flex-col overflow-hidden"
+        >
+          {/* Sidebar header */}
+          <div className={`flex items-center justify-between px-3 py-3 border-b border-shell-800 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+            {!sidebarCollapsed && (
+              <span className="font-display text-xs text-shell-500 uppercase tracking-wider">
+                Files
+              </span>
+            )}
+            <div className={`flex items-center gap-2 ${sidebarCollapsed ? 'mx-auto' : ''}`}>
+              {loading && !sidebarCollapsed && (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                >
+                  <RefreshCw size={14} className="text-shell-500" />
+                </motion.div>
+              )}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="p-1.5 hover:bg-shell-800 rounded transition-colors"
+                title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+              >
+                {sidebarCollapsed ? (
+                  <PanelLeft size={16} className="text-gray-400 hover:text-crab-400" />
                 ) : (
-                  <div className="p-4 text-center">
-                    <p className="font-console text-xs text-shell-500">
-                      Enter a workspace path to browse files
-                    </p>
-                  </div>
+                  <PanelLeftClose size={16} className="text-shell-500 hover:text-crab-400" />
                 )}
-              </div>
+              </button>
+            </div>
+          </div>
 
-              {/* Sidebar footer */}
-              {pathValid && (
-                <div className="px-4 py-2 border-t border-shell-800">
-                  <p className="font-console text-[10px] text-shell-600 truncate">
-                    {workspacePath}
+          {/* File tree */}
+          {!sidebarCollapsed && (
+            <div className="flex-1 overflow-auto py-2">
+              {pathValid ? (
+                <FileTree
+                  entries={rootEntries}
+                  selectedPath={selectedPath}
+                  onSelect={handleSelect}
+                  onLoadDirectory={handleLoadDirectory}
+                />
+              ) : (
+                <div className="p-4 text-center">
+                  <p className="font-console text-xs text-shell-500">
+                    Enter a workspace path to browse files
                   </p>
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+
+          {/* Sidebar footer */}
+          {pathValid && !sidebarCollapsed && (
+            <div className="px-4 py-2 border-t border-shell-800">
+              <p className="font-console text-[10px] text-shell-600 truncate">
+                {workspacePath}
+              </p>
+            </div>
+          )}
+        </motion.div>
 
         {/* Main content area */}
         <div className="flex-1 relative bg-shell-950">
-          {/* Floating sidebar toggle when collapsed */}
-          {sidebarCollapsed && (
-            <motion.button
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              onClick={() => setSidebarCollapsed(false)}
-              className="absolute left-4 top-4 z-10 p-2 bg-shell-800/80 hover:bg-shell-700 rounded-lg border border-shell-700 transition-all"
-              title="Show sidebar"
-            >
-              <PanelLeft size={18} className="text-gray-400 hover:text-crab-400" />
-            </motion.button>
-          )}
           <MarkdownViewer
             content={selectedFileContent}
             fileName={selectedFileName}
