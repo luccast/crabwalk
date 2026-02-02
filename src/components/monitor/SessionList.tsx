@@ -57,9 +57,7 @@ function SubagentItem({
   onSelect: (key: string) => void;
 }) {
   return (
-    <motion.button
-      initial={false}
-      animate={{ opacity: 1 }}
+    <button
       onClick={() => onSelect(session.key)}
       className={`w-full text-left border-b border-shell-800/50 transition-all duration-150 group ${
         collapsed ? "p-2" : "py-2 pr-3 pl-6"
@@ -89,7 +87,7 @@ function SubagentItem({
           </div>
         </>
       )}
-    </motion.button>
+    </button>
   );
 }
 
@@ -168,16 +166,18 @@ export function SessionList({
       <div className="absolute inset-0 texture-scanlines pointer-events-none opacity-50" />
 
       {/* Header */}
-      <div className="relative p-3 bg-shell-950/50">
-        <div className={`flex items-center justify-between ${collapsed ? "" : "mb-3"}`}>
-          {!collapsed && (
-            <h2 className="font-mono uppercase text-sm text-crab-400 glow-red tracking-wider ml-1">
-              Sessions
-            </h2>
-          )}
+      <div className="relative p-3 bg-shell-950/50 overflow-hidden">
+        <div className="flex items-center justify-between mb-3">
+          <h2
+            className={`font-mono uppercase text-sm text-crab-400 glow-red tracking-wider ml-1 transition-opacity duration-200 ${
+              collapsed ? "opacity-0" : "opacity-100"
+            }`}
+          >
+            Sessions
+          </h2>
           <button
             onClick={onToggleCollapse}
-            className={`p-1.5 hover:bg-shell-800 rounded transition-all ${collapsed ? "mx-auto" : ""}`}
+            className={`p-1.5 hover:bg-shell-800 rounded transition-all ${collapsed ? "absolute left-1/2 -translate-x-1/2" : ""}`}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? (
@@ -188,61 +188,68 @@ export function SessionList({
           </button>
         </div>
 
-        {/* Search input - hidden when collapsed */}
-        {!collapsed && (
-          <>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Filter sessions..."
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="input-retro w-full pl-9 pr-3 py-2 text-xs"
-              />
-            </div>
+        {/* Search input - fades when collapsed */}
+        <div
+          className={`transition-all duration-200 ${
+            collapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"
+          }`}
+        >
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Filter sessions..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="input-retro w-full pl-9 pr-3 py-2 text-xs"
+              tabIndex={collapsed ? -1 : 0}
+            />
+          </div>
 
-            {/* Platform filters */}
-            {platforms.length > 1 && (
-              <div className="flex gap-1.5 mt-3 flex-wrap">
+          {/* Platform filters */}
+          {platforms.length > 1 && (
+            <div className="flex gap-1.5 mt-3 flex-wrap">
+              <button
+                onClick={() => setPlatformFilter(null)}
+                tabIndex={collapsed ? -1 : 0}
+                className={`px-2.5 py-1 text-[11px] font-display uppercase tracking-wide rounded border transition-all ${
+                  !platformFilter
+                    ? "bg-crab-600 border-crab-500 text-white box-glow-red"
+                    : "bg-shell-800 border-shell-700 text-gray-400 hover:border-shell-600 hover:text-gray-300"
+                }`}
+              >
+                All
+              </button>
+              {platforms.map((p) => (
                 <button
-                  onClick={() => setPlatformFilter(null)}
+                  key={p}
+                  onClick={() => setPlatformFilter(p)}
+                  tabIndex={collapsed ? -1 : 0}
                   className={`px-2.5 py-1 text-[11px] font-display uppercase tracking-wide rounded border transition-all ${
-                    !platformFilter
+                    platformFilter === p
                       ? "bg-crab-600 border-crab-500 text-white box-glow-red"
                       : "bg-shell-800 border-shell-700 text-gray-400 hover:border-shell-600 hover:text-gray-300"
                   }`}
                 >
-                  All
+                  {platformEmoji[p] || "📱"} {p}
                 </button>
-                {platforms.map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPlatformFilter(p)}
-                    className={`px-2.5 py-1 text-[11px] font-display uppercase tracking-wide rounded border transition-all ${
-                      platformFilter === p
-                        ? "bg-crab-600 border-crab-500 text-white box-glow-red"
-                        : "bg-shell-800 border-shell-700 text-gray-400 hover:border-shell-600 hover:text-gray-300"
-                    }`}
-                  >
-                    {platformEmoji[p] || "📱"} {p}
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Session list */}
       <div className="relative flex-1 overflow-y-auto">
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="sync">
           {sortedParents.map((session) => (
-            <div key={session.key}>
-              <motion.button
-                layout
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+            <motion.div
+              key={session.key}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <button
                 onClick={() => onSelect(session.key)}
                 className={`w-full text-left p-3 border-b border-shell-800 transition-all duration-150 group ${
                   selectedKey === session.key
@@ -290,7 +297,7 @@ export function SessionList({
                     </div>
                   </>
                 )}
-              </motion.button>
+              </button>
 
               {/* Nested subagents */}
               {(() => {
@@ -317,9 +324,9 @@ export function SessionList({
                         size={14}
                         className={`transition-transform ${isGroupCollapsed ? "-rotate-90" : ""}`}
                       />
-                      {!collapsed && (
-                        <span>{subs.length} subagent{subs.length > 1 ? "s" : ""}</span>
-                      )}
+                      <span className={`transition-opacity duration-200 ${collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
+                        {subs.length} subagent{subs.length > 1 ? "s" : ""}
+                      </span>
                     </button>
                     <motion.div
                       initial={false}
@@ -343,23 +350,30 @@ export function SessionList({
                   </>
                 );
               })()}
-            </div>
+            </motion.div>
           ))}
 
           {/* Orphan subagents */}
           {orphanSubagents.map((sub) => (
-            <SubagentItem
+            <motion.div
               key={sub.key}
-              session={sub}
-              selected={selectedKey === sub.key}
-              collapsed={collapsed}
-              onSelect={onSelect}
-            />
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <SubagentItem
+                session={sub}
+                selected={selectedKey === sub.key}
+                collapsed={collapsed}
+                onSelect={onSelect}
+              />
+            </motion.div>
           ))}
         </AnimatePresence>
 
-        {sortedParents.length === 0 && orphanSubagents.length === 0 && !collapsed && (
-          <div className="p-6 text-center">
+        {sortedParents.length === 0 && orphanSubagents.length === 0 && (
+          <div className={`p-6 text-center transition-opacity duration-200 ${collapsed ? "opacity-0" : "opacity-100"}`}>
             <div className="font-console text-xs text-shell-500">
               <span className="text-crab-600">&gt;</span> no sessions found
             </div>
@@ -368,10 +382,8 @@ export function SessionList({
       </div>
 
       {/* Footer */}
-      <div className={`relative bg-shell-950/50 ${collapsed ? "py-4 px-2" : "p-2.5"}`}>
-        <div
-          className={`font-console text-xs text-shell-500 text-center flex items-center justify-center ${collapsed ? "flex-col gap-3" : "gap-4"}`}
-        >
+      <div className="relative bg-shell-950/50 p-2.5">
+        <div className="font-console text-xs text-shell-500 text-center flex items-center justify-center gap-4">
           <a
             href="https://github.com/luccast/crabwalk"
             target="_blank"
@@ -380,7 +392,9 @@ export function SessionList({
             title="Github"
           >
             <Github size={14} />
-            {!collapsed && <span>Github</span>}
+            <span className={`transition-opacity duration-200 ${collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
+              Github
+            </span>
           </a>
 
           <a
@@ -392,7 +406,9 @@ export function SessionList({
             title="X"
           >
             <XIcon size={14} />
-            {!collapsed && <span>@luccasveg</span>}
+            <span className={`transition-opacity duration-200 ${collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
+              @luccasveg
+            </span>
           </a>
         </div>
       </div>
