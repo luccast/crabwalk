@@ -397,24 +397,29 @@ function WorkspacePage() {
         </div>
 
         {/* Path input - desktop only */}
-        <div className="hidden sm:flex relative items-center gap-3 flex-1 max-w-2xl mx-4">
-          <div className="flex-1 flex items-center gap-2">
-            <FolderOpen size={16} className="text-shell-500 shrink-0" />
+        <div className="hidden sm:flex relative items-center gap-2 flex-1 max-w-2xl mx-4">
+          <div className="flex-1 relative">
+            <FolderOpen size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-shell-500 pointer-events-none" />
             <input
               type="text"
               value={workspacePathInput}
               onChange={(e) => setWorkspacePathInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Enter workspace path..."
-              className="flex-1 bg-shell-800 border border-shell-700 rounded-lg px-3 py-1.5 text-sm font-console text-gray-200 placeholder-shell-500 focus:outline-none focus:border-crab-500 focus:ring-1 focus:ring-crab-500/20"
+              className="w-full bg-shell-800 border border-shell-700 rounded-lg pl-9 pr-3 py-1.5 text-sm font-console text-gray-200 placeholder-shell-500 focus:outline-none focus:border-crab-500 focus:ring-1 focus:ring-crab-500/20"
             />
-            <button
-              onClick={validateAndSetPath}
-              className="px-3 py-1.5 bg-crab-600 hover:bg-crab-500 text-white text-sm font-display rounded-lg transition-colors"
-            >
-              Open
-            </button>
           </div>
+          <button
+            onClick={validateAndSetPath}
+            disabled={pathValid && workspacePathInput === workspacePath}
+            className={`px-3 py-1.5 text-sm font-display rounded-lg transition-colors shrink-0 ${
+              pathValid && workspacePathInput === workspacePath
+                ? 'bg-shell-800 text-shell-500 cursor-default'
+                : 'bg-crab-600 hover:bg-crab-500 text-white'
+            }`}
+          >
+            Open
+          </button>
 
           {pathError && (
             <div className="absolute top-full left-0 right-0 mt-2 px-3 py-2 bg-crab-900/90 border border-crab-700 rounded-lg flex items-center gap-2 z-50">
@@ -631,6 +636,8 @@ function WorkspacePage() {
             open={pathSheetOpen}
             onClose={() => setPathSheetOpen(false)}
             initialPath={workspacePathInput}
+            validatedPath={workspacePath}
+            pathValid={pathValid}
             pathError={pathError}
             onValidate={async (path) => {
               await validatePathAndSet(path)

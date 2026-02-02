@@ -6,6 +6,8 @@ interface MobilePathSheetProps {
   open: boolean
   onClose: () => void
   initialPath: string
+  validatedPath: string
+  pathValid: boolean
   pathError: string | null
   onValidate: (path: string) => Promise<boolean>
 }
@@ -14,6 +16,8 @@ export function MobilePathSheet({
   open,
   onClose,
   initialPath,
+  validatedPath,
+  pathValid,
   pathError,
   onValidate,
 }: MobilePathSheetProps) {
@@ -110,8 +114,12 @@ export function MobilePathSheet({
 
               <button
                 onClick={handleSubmit}
-                disabled={loading || !pathInput.trim()}
-                className="w-full py-4 bg-crab-600 hover:bg-crab-500 active:bg-crab-700 text-white font-display text-sm uppercase tracking-wider rounded-lg transition-colors mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || !pathInput.trim() || (pathValid && pathInput === validatedPath)}
+                className={`w-full py-4 font-display text-sm uppercase tracking-wider rounded-lg transition-colors mb-4 ${
+                  pathValid && pathInput === validatedPath
+                    ? 'bg-shell-800 text-shell-500 cursor-default'
+                    : 'bg-crab-600 hover:bg-crab-500 active:bg-crab-700 text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                }`}
               >
                 {loading ? 'Opening...' : 'Open'}
               </button>
