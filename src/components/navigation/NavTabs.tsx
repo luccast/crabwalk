@@ -107,15 +107,9 @@ export function NavTabs() {
                 {/* Terminal header */}
                 <div className="flex items-center gap-2 px-3 py-2 bg-shell-950 border-b border-shell-800">
                   <Terminal size={12} className="text-shell-500" />
-                  <span className="font-console text-[10px] text-shell-500 uppercase tracking-widest">
+                  <span className="font-console text-[11px] text-shell-500 uppercase tracking-widest">
                     navigate
                   </span>
-                  {/* Decorative dots */}
-                  <div className="ml-auto flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-shell-700" />
-                    <div className="w-2 h-2 rounded-full bg-shell-700" />
-                    <div className="w-2 h-2 rounded-full bg-crab-500/50" />
-                  </div>
                 </div>
 
                 {/* Menu items */}
@@ -164,8 +158,8 @@ export function NavTabs() {
                 </div>
 
                 {/* Terminal footer with hint */}
-                <div className="px-3 py-2 bg-shell-950/50 border-t border-shell-800/50">
-                  <span className="font-console text-[9px] text-shell-600">
+                <div className="px-3 pb-2 pt-1 bg-shell-950/50 border-t border-shell-800/50">
+                  <span className="font-console text-[11px] text-shell-600">
                     <span className="text-shell-500">esc</span> to close
                   </span>
                 </div>
