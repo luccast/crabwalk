@@ -90,10 +90,10 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }:
       <motion.div
         onClick={handleClick}
         style={{ paddingLeft }}
-        className={`w-full flex items-center gap-2 py-1.5 pr-3 text-left transition-all duration-150 rounded-md mx-1 cursor-pointer ${
+        className={`w-full flex items-center gap-2 py-1.5 pr-3 text-left transition-all duration-150 rounded-lg mx-1 cursor-pointer group ${
           isSelected
-            ? 'bg-crab-500/20 text-crab-400 border-l-2 border-crab-400'
-            : 'text-gray-300 hover:bg-shell-800 hover:text-gray-100 border-l-2 border-transparent'
+            ? 'bg-crab-500/15 border border-crab-500/30 text-crab-400'
+            : 'text-gray-300 hover:bg-shell-800/80 hover:text-gray-100 border border-transparent hover:border-shell-700/50'
         }`}
         whileHover={{ x: 2 }}
         transition={{ duration: 0.1 }}

@@ -12,12 +12,13 @@ import { ReactNode } from 'react'
  */
 interface FloatingHUDProps {
   children: ReactNode
+  className?: string
 }
 
-export function FloatingHUD({ children }: FloatingHUDProps) {
+export function FloatingHUD({ children, className }: FloatingHUDProps) {
   return (
-    <div className="fixed inset-x-0 top-0 z-30 pointer-events-none">
-      <div className="hidden sm:flex items-start justify-between p-4 gap-4">
+    <div className={className || "fixed inset-x-0 top-0 z-30 pointer-events-none"}>
+      <div className="hidden sm:flex items-center justify-between p-4 gap-4 w-full">
         {children}
       </div>
     </div>
@@ -177,35 +178,35 @@ interface StatusPillProps {
 export function StatusPill({ status, label }: StatusPillProps) {
   const config = {
     connected: {
-      bg: 'bg-neon-mint/15',
+      bg: 'bg-neon-mint/15 shadow-[0_0_10px_-4px_rgba(5,255,161,0.3)]',
       border: 'border-neon-mint/40',
       dot: 'bg-neon-mint animate-pulse',
       text: 'text-neon-mint',
       defaultLabel: 'CONNECTED',
     },
     active: {
-      bg: 'bg-neon-mint/15',
+      bg: 'bg-neon-mint/15 shadow-[0_0_10px_-4px_rgba(5,255,161,0.3)]',
       border: 'border-neon-mint/40',
       dot: 'bg-neon-mint animate-pulse',
       text: 'text-neon-mint',
       defaultLabel: 'ACTIVE',
     },
     connecting: {
-      bg: 'bg-neon-peach/15',
+      bg: 'bg-neon-peach/15 shadow-[0_0_10px_-4px_rgba(255,157,128,0.3)]',
       border: 'border-neon-peach/40',
       dot: 'bg-neon-peach animate-pulse',
       text: 'text-neon-peach',
       defaultLabel: 'CONNECTING',
     },
     disconnected: {
-      bg: 'bg-shell-800/50',
+      bg: 'bg-shell-800/80',
       border: 'border-shell-600/50',
       dot: 'bg-shell-500',
       text: 'text-shell-400',
       defaultLabel: 'OFFLINE',
     },
     inactive: {
-      bg: 'bg-shell-800/50',
+      bg: 'bg-shell-800/80',
       border: 'border-shell-600/50',
       dot: 'bg-shell-500',
       text: 'text-shell-400',

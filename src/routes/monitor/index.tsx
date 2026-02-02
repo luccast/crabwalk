@@ -381,71 +381,74 @@ function MonitorPage() {
   }, [connected])
 
   return (
-    <div className="h-screen bg-shell-950 text-white overflow-hidden">
-      {/* Global navigation */}
-      <CommandNav />
+    <div className="h-screen bg-shell-950 text-white overflow-hidden flex">
+      {/* Sidebar - Full height */}
+      <SessionList
+        sessions={sessions}
+        selectedKey={selectedSession}
+        onSelect={setSelectedSession}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={handleToggleSidebar}
+      />
 
-      {/* Floating HUD - hovers over content */}
-      <FloatingHUD>
-        {/* Left panel - status */}
-        <HUDNavSpacer />
-        <FloatingPanel delay={0.05}>
-          <HUDStatusPill
-            status={connected ? 'connected' : connecting ? 'connecting' : 'disconnected'}
-          />
-          <AnimatePresence>
-            {connecting && retryCount > 0 && (
-              <HUDRetryIndicator retryCount={retryCount} maxRetries={MAX_RETRIES} />
-            )}
-          </AnimatePresence>
-        </FloatingPanel>
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col h-full min-w-0 bg-shell-950 relative">
+        {/* Header Area */}
+        <div className="shrink-0 relative z-30">
+          <FloatingHUD className="relative z-30 pointer-events-none w-full border-b border-shell-800/50 bg-shell-950/50">
+            <div className="flex items-center gap-4 w-full pointer-events-auto">
+              {/* Global navigation */}
+              <CommandNav className="relative" />
 
-        {/* Spacer to push right panel */}
-        <div className="flex-1" />
+              {/* Left panel - status */}
+              <FloatingPanel delay={0.05} position="left">
+                <HUDStatusPill
+                  status={connected ? 'connected' : connecting ? 'connecting' : 'disconnected'}
+                />
+                <AnimatePresence>
+                  {connecting && retryCount > 0 && (
+                    <HUDRetryIndicator retryCount={retryCount} maxRetries={MAX_RETRIES} />
+                  )}
+                </AnimatePresence>
+              </FloatingPanel>
+            </div>
 
-        {/* Right panel - stats & actions */}
-        <FloatingPanel delay={0.1}>
-          <HUDSection>
-            <StatDisplay label="Sessions" value={sessions.length} color="mint" />
-            <HUDDivider />
-            <StatDisplay label="Actions" value={actions.length} color="peach" />
-          </HUDSection>
+            {/* Spacer to push right panel */}
+            <div className="flex-1" />
 
-          <HUDSection divider>
-            <HUDBadgeCounter
-              count={completedCount}
-              icon={<Trash2 size={12} />}
-              onClick={handleClearCompleted}
-              title={`Clear ${completedCount} completed`}
-            />
-            <HUDServiceIndicator
-              active={persistenceEnabled}
-              icon={<HardDrive size={12} />}
-              onClick={() => setSettingsOpen(true)}
-              title={persistenceEnabled ? 'Background service running' : 'Service stopped'}
-            />
-            <HUDIconButton
-              icon={<Settings size={14} />}
-              onClick={() => setSettingsOpen(true)}
-              title="Settings"
-            />
-          </HUDSection>
-        </FloatingPanel>
-      </FloatingHUD>
+            {/* Right panel - stats & actions */}
+            <FloatingPanel delay={0.1} position="right">
+              <HUDSection>
+                <StatDisplay label="Sessions" value={sessions.length} color="mint" />
+                <HUDDivider />
+                <StatDisplay label="Actions" value={actions.length} color="peach" />
+              </HUDSection>
 
-      {/* Main content - flows beneath HUD */}
-      <div className="h-full flex overflow-hidden pt-16">
-        {/* Sidebar */}
-        <SessionList
-          sessions={sessions}
-          selectedKey={selectedSession}
-          onSelect={setSelectedSession}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={handleToggleSidebar}
-        />
+              <HUDSection divider>
+                <HUDBadgeCounter
+                  count={completedCount}
+                  icon={<Trash2 size={12} />}
+                  onClick={handleClearCompleted}
+                  title={`Clear ${completedCount} completed`}
+                />
+                <HUDServiceIndicator
+                  active={persistenceEnabled}
+                  icon={<HardDrive size={12} />}
+                  onClick={() => setSettingsOpen(true)}
+                  title={persistenceEnabled ? 'Background service running' : 'Service stopped'}
+                />
+                <HUDIconButton
+                  icon={<Settings size={14} />}
+                  onClick={() => setSettingsOpen(true)}
+                  title="Settings"
+                />
+              </HUDSection>
+            </FloatingPanel>
+          </FloatingHUD>
+        </div>
 
         {/* Graph area */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative overflow-hidden">
           <ActionGraph
             sessions={sessions}
             actions={actions}

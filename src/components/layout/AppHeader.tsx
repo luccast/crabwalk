@@ -16,10 +16,12 @@ interface AppHeaderProps {
 export function AppHeader({ left, center, right, hiddenOnMobile = true }: AppHeaderProps) {
   return (
     <header
-      className={`${hiddenOnMobile ? 'hidden sm:flex' : 'flex'} items-center justify-between px-4 py-3 bg-shell-900/80 backdrop-blur-sm relative z-30`}
+      className={`${
+        hiddenOnMobile ? 'hidden sm:flex' : 'flex'
+      } items-center justify-between px-4 py-3 bg-shell-900/95 backdrop-blur-md border-b border-shell-700/80 relative z-30 shadow-sm shadow-black/20`}
     >
-      {/* Gradient accent line */}
-      <div className="absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-shell-700/50 to-transparent" />
+      {/* Bottom accent line (subtle) */}
+      <div className="absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-shell-700/30 to-transparent opacity-50" />
 
       {/* Left section */}
       <div className="relative flex items-center gap-4">
@@ -121,7 +123,7 @@ export function StatBlock({ label, value, color = 'default' }: StatBlockProps) {
 /** Stats container with dividers */
 export function StatsGroup({ children }: { children: ReactNode }) {
   return (
-    <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-shell-800/50 border border-shell-700/50 rounded-lg">
+    <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-shell-800/30 border border-shell-700/50 rounded-lg backdrop-blur-sm">
       {children}
     </div>
   )

@@ -59,13 +59,13 @@ export function MobileFileDrawer({
             className="fixed inset-y-0 left-0 w-full max-w-[85vw] bg-shell-900 z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b border-shell-800">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-shell-700/80">
               <span className="font-display text-sm text-crab-400 uppercase tracking-wider">
                 Files
               </span>
               <button
                 onClick={onClose}
-                className="p-2 -mr-2 hover:bg-shell-800 rounded-lg transition-colors"
+                className="p-2 -mr-2 hover:bg-shell-800/80 rounded-lg transition-colors"
               >
                 <X size={24} className="text-gray-400" />
               </button>
@@ -73,7 +73,7 @@ export function MobileFileDrawer({
 
             {/* Starred files section */}
             {starredPaths.size > 0 && (
-              <div className="border-b border-shell-800 py-2">
+              <div className="border-b border-shell-700/80 py-2">
                 {[...starredPaths].map((filePath) => {
                   const fileName = filePath.split('/').pop() || filePath
                   const ext = fileName.includes('.') ? '.' + fileName.split('.').pop() : ''
@@ -83,8 +83,8 @@ export function MobileFileDrawer({
                       key={filePath}
                       className={`group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
                         isSelected
-                          ? 'bg-crab-500/20 text-crab-400'
-                          : 'text-gray-300 active:bg-shell-800'
+                          ? 'bg-crab-500/15 text-crab-400'
+                          : 'text-gray-300 active:bg-shell-800/80'
                       }`}
                       onClick={() => handleSelect(filePath, 'file')}
                     >
@@ -132,7 +132,7 @@ export function MobileFileDrawer({
 
             {/* Footer with path */}
             {pathValid && (
-              <div className="px-4 py-3 border-t border-shell-800 bg-shell-950/50">
+              <div className="px-4 py-3 border-t border-shell-700/80 bg-shell-950/50">
                 <p className="font-console text-[10px] text-shell-600 truncate">
                   {workspacePath}
                 </p>

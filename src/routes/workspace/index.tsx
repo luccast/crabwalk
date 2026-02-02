@@ -1,15 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { motion } from 'framer-motion'
-import {
-  FolderOpen,
-  FolderTree,
-  RefreshCw,
-  PanelLeft,
-  PanelLeftClose,
-  Star,
-  FileText,
-} from 'lucide-react'
+import { FolderOpen, FolderTree, RefreshCw } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
 import { CommandNav } from '~/components/navigation'
 import {
@@ -21,11 +13,11 @@ import {
   HUDIconButton,
 } from '~/components/layout'
 import {
-  FileTree as FileTreeComponent,
   MarkdownViewer,
   MobileBottomToolbar,
   MobileFileDrawer,
   MobilePathSheet,
+  WorkspaceSidebar,
 } from '~/components/workspace'
 import { useIsMobile } from '~/hooks/useIsMobile'
 import type { DirectoryEntry } from '~/lib/workspace-fs'
@@ -365,195 +357,66 @@ function WorkspacePage() {
 
 
   return (
-    <div className="h-screen bg-shell-950 text-white overflow-hidden">
-      {/* Global navigation */}
-      <CommandNav />
-
-      {/* Floating HUD - hovers over content */}
-      <FloatingHUD>
-        {/* Left panel - status */}
-        <HUDNavSpacer />
-        <FloatingPanel delay={0.05}>
-          <HUDStatusPill
-            status={pathValid ? 'active' : 'inactive'}
-            label={pathValid ? 'WORKSPACE' : 'NO PATH'}
-          />
-        </FloatingPanel>
-
-        {/* Center - path input */}
-        <FloatingInputBar
-          value={workspacePathInput}
-          onChange={setWorkspacePathInput}
-          onSubmit={validateAndSetPath}
-          placeholder="Enter workspace path..."
-          icon={<FolderOpen size={14} />}
-          submitDisabled={pathValid && workspacePathInput === workspacePath}
-          error={pathError}
-          delay={0.1}
+    <div className="h-screen bg-shell-950 text-white overflow-hidden flex">
+      {/* Sidebar - desktop only */}
+      {!isMobile && (
+        <WorkspaceSidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          entries={rootEntries}
+          selectedPath={selectedPath}
+          onSelect={handleSelect}
+          onLoadDirectory={handleLoadDirectory}
+          workspacePath={workspacePath}
+          pathValid={pathValid}
+          starredPaths={starredPaths}
+          onStar={handleStar}
         />
+      )}
 
-        {/* Right panel - actions */}
-        <FloatingPanel delay={0.15}>
-          <HUDIconButton
-            icon={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}
-            onClick={handleRefresh}
-            disabled={!pathValid || loading}
-            title="Refresh workspace"
-          />
-        </FloatingPanel>
-      </FloatingHUD>
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col h-full min-w-0 bg-shell-950 relative">
+        {/* Header Area */}
+        <div className="shrink-0 relative z-30">
+          <FloatingHUD className="relative z-30 pointer-events-none w-full border-b border-shell-800/50 bg-shell-950/50">
+            <div className="flex items-center gap-4 w-full pointer-events-auto">
+              <CommandNav className="relative" />
 
-      {/* Main content - flows beneath HUD */}
-      <div className="h-full flex overflow-hidden pt-16">
-        {/* Sidebar - desktop only */}
-        {!isMobile && (
-          <motion.div
-            initial={false}
-            animate={{ width: sidebarCollapsed ? 56 : 320 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
-            className="border-r border-shell-800 bg-shell-900/50 flex flex-col overflow-hidden"
-          >
-          {/* Sidebar header */}
-          <div className={`flex items-center justify-between px-3 py-3 border-b border-shell-800 ${sidebarCollapsed ? 'justify-center' : ''}`}>
-            {!sidebarCollapsed && (
-              <span className="font-display text-xs text-shell-500 uppercase tracking-wider">
-                Files
-              </span>
-            )}
-            <div className={`flex items-center gap-2 ${sidebarCollapsed ? 'mx-auto' : ''}`}>
-              {loading && !sidebarCollapsed && (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                >
-                  <RefreshCw size={14} className="text-shell-500" />
-                </motion.div>
-              )}
-              <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="p-1.5 hover:bg-shell-800 rounded transition-colors"
-                title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-              >
-                {sidebarCollapsed ? (
-                  <PanelLeft size={16} className="text-gray-400 hover:text-crab-400" />
-                ) : (
-                  <PanelLeftClose size={16} className="text-shell-500 hover:text-crab-400" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Starred files section */}
-          {starredPaths.size > 0 && (
-            <>
-              {sidebarCollapsed ? (
-                // Collapsed: stacked file icons
-                <div className="flex flex-col items-center gap-1 py-2 border-b border-shell-800">
-                  {[...starredPaths].slice(0, 5).map((filePath) => {
-                    const fileName = filePath.split('/').pop() || filePath
-                    const isSelected = selectedPath === filePath
-                    return (
-                      <button
-                        key={filePath}
-                        onClick={() => handleSelect(filePath, 'file')}
-                        className={`relative p-1.5 rounded transition-colors ${
-                          isSelected ? 'bg-crab-500/20' : 'hover:bg-shell-800'
-                        }`}
-                        title={fileName}
-                      >
-                        <FileText
-                          size={16}
-                          className={isSelected ? 'text-crab-400' : 'text-shell-500'}
-                        />
-                        <Star
-                          size={8}
-                          fill="currentColor"
-                          className="absolute -top-0.5 -right-0.5 text-yellow-400"
-                        />
-                      </button>
-                    )
-                  })}
-                  {starredPaths.size > 5 && (
-                    <span className="text-[10px] text-shell-500">+{starredPaths.size - 5}</span>
-                  )}
-                </div>
-              ) : (
-                // Expanded: starred files list
-                <div className="border-b border-shell-800 py-2">
-                  {[...starredPaths].map((filePath) => {
-                    const fileName = filePath.split('/').pop() || filePath
-                    const ext = fileName.includes('.') ? '.' + fileName.split('.').pop() : ''
-                    const isSelected = selectedPath === filePath
-                    return (
-                      <div
-                        key={filePath}
-                        className={`group flex items-center gap-2 px-4 py-1.5 cursor-pointer transition-colors ${
-                          isSelected
-                            ? 'bg-crab-500/20 text-crab-400'
-                            : 'text-gray-300 hover:bg-shell-800 hover:text-gray-100'
-                        }`}
-                        onClick={() => handleSelect(filePath, 'file')}
-                      >
-                        <FileText
-                          size={14}
-                          className={`shrink-0 ${
-                            ext === '.md' ? 'text-crab-400' : 'text-shell-500'
-                          }`}
-                        />
-                        <span className="font-console text-sm truncate flex-1">
-                          {fileName}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleStar(filePath)
-                          }}
-                          className="text-yellow-400 hover:text-yellow-300 shrink-0"
-                          title="Unstar file"
-                        >
-                          <Star size={14} fill="currentColor" />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* File tree */}
-          {!sidebarCollapsed && (
-            <div className="flex-1 overflow-auto py-2">
-              {pathValid ? (
-                <FileTreeComponent
-                  entries={rootEntries}
-                  selectedPath={selectedPath}
-                  onSelect={handleSelect}
-                  onLoadDirectory={handleLoadDirectory}
+              {/* Left panel - status */}
+              <FloatingPanel delay={0.05} position="left">
+                <HUDStatusPill
+                  status={pathValid ? 'active' : 'inactive'}
+                  label={pathValid ? 'WORKSPACE' : 'NO PATH'}
                 />
-              ) : (
-                <div className="p-4 text-center">
-                  <p className="font-console text-xs text-shell-500">
-                    Enter a workspace path to browse files
-                  </p>
-                </div>
-              )}
+              </FloatingPanel>
             </div>
-          )}
 
-          {/* Sidebar footer */}
-          {pathValid && !sidebarCollapsed && (
-            <div className="px-4 py-2 border-t border-shell-800">
-              <p className="font-console text-[10px] text-shell-600 truncate">
-                {workspacePath}
-              </p>
-            </div>
-          )}
-        </motion.div>
-        )}
+            {/* Center - path input */}
+            <FloatingInputBar
+              value={workspacePathInput}
+              onChange={setWorkspacePathInput}
+              onSubmit={validateAndSetPath}
+              placeholder="Enter workspace path..."
+              icon={<FolderOpen size={14} />}
+              submitDisabled={pathValid && workspacePathInput === workspacePath}
+              error={pathError}
+              delay={0.1}
+            />
 
-        {/* Main content area */}
-        <div className={`flex-1 relative bg-shell-950 ${isMobile ? 'pb-20' : ''}`}>
+            {/* Right panel - actions */}
+            <FloatingPanel delay={0.15} position="right">
+              <HUDIconButton
+                icon={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}
+                onClick={handleRefresh}
+                disabled={!pathValid || loading}
+                title="Refresh workspace"
+              />
+            </FloatingPanel>
+          </FloatingHUD>
+        </div>
+
+        {/* Content */}
+        <div className={`flex-1 relative overflow-hidden ${isMobile ? 'pb-20' : ''}`}>
           <MarkdownViewer
             content={selectedFileContent}
             fileName={selectedFileName}

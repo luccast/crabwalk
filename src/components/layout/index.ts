@@ -25,3 +25,16 @@ export {
   BadgeCounter as HUDBadgeCounter,
   RetryIndicator as HUDRetryIndicator,
 } from './FloatingHUD'
+
+export {
+  Sidebar,
+  SidebarHeader,
+  SidebarSection,
+  SidebarContent,
+  SidebarItem,
+  SidebarDivider,
+  SidebarFooter,
+  SidebarEmpty,
+  SidebarFilterPills,
+  useSidebar,
+} from './Sidebar'

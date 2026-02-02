@@ -35,7 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   },
 ]
 
-export function CommandNav() {
+export function CommandNav({ className }: { className?: string }) {
   const location = useLocation()
   const [expanded, setExpanded] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -83,12 +83,12 @@ export function CommandNav() {
 
   return (
     <>
-      {/* Main nav trigger - positioned in top-left */}
+      {/* Main nav trigger */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="fixed top-4 left-4 z-50"
+        className={className || "fixed top-4 left-4 z-50"}
       >
         <button
           onClick={() => setExpanded(!expanded)}
