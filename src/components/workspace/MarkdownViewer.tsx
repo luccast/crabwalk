@@ -135,11 +135,12 @@ export function MarkdownViewer({ content, fileName, filePath, fileSize, fileModi
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content - Fixed max-width with word wrap */}
       <div className="flex-1 overflow-auto p-6">
-        {isMarkdown ? (
-          <div className="prose prose-invert prose-sm max-w-none">
-            <ReactMarkdown
+        <div className="max-w-[1200px] mx-auto">
+          {isMarkdown ? (
+            <div className="prose prose-invert prose-sm max-w-none break-words">
+              <ReactMarkdown
               components={{
                 h1: ({ children }) => (
                   <h1 className="text-2xl font-display text-crab-400 mb-4 pb-2 border-b border-shell-800">
@@ -212,8 +213,9 @@ export function MarkdownViewer({ content, fileName, filePath, fileSize, fileModi
             </ReactMarkdown>
           </div>
         ) : (
-          <pre className="font-mono text-sm text-gray-300 whitespace-pre-wrap">{content}</pre>
+          <pre className="font-mono text-sm text-gray-300 whitespace-pre-wrap break-words">{content}</pre>
         )}
+        </div>
       </div>
     </div>
   )

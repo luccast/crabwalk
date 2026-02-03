@@ -18,6 +18,7 @@ interface FileTreeProps {
   selectedPath: string | null
   onSelect: (path: string, type: 'file' | 'directory') => void
   onLoadDirectory?: (path: string) => Promise<DirectoryEntry[]>
+  onContextMenu?: (e: React.MouseEvent, path: string) => void
   level?: number
 }
 
@@ -26,10 +27,11 @@ interface FileTreeItemProps {
   selectedPath: string | null
   onSelect: (path: string, type: 'file' | 'directory') => void
   onLoadDirectory?: (path: string) => Promise<DirectoryEntry[]>
+  onContextMenu?: (e: React.MouseEvent, path: string) => void
   level: number
 }
 
-function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }: FileTreeItemProps) {
+function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onContextMenu, level }: FileTreeItemProps) {
   const [expanded, setExpanded] = useState(false)
   const [children, setChildren] = useState<DirectoryEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -85,10 +87,20 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }:
     }
   }, [entry.path, entry.type, expanded, loadChildren, onSelect, isDirectory])
 
+  const handleContextMenuFn = useCallback(
+    (e: React.MouseEvent) => {
+      if (onContextMenu && entry.type === 'file') {
+        onContextMenu(e, entry.path)
+      }
+    },
+    [entry.path, entry.type, onContextMenu]
+  )
+
   return (
     <div>
       <motion.div
         onClick={handleClick}
+        onContextMenu={handleContextMenuFn}
         style={{ paddingLeft }}
         className={`flex items-center gap-2 py-1.5 pr-2 text-left transition-all duration-150 rounded-md mr-1 cursor-pointer ${
           isSelected
@@ -172,6 +184,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }:
                   selectedPath={selectedPath}
                   onSelect={onSelect}
                   onLoadDirectory={onLoadDirectory}
+                  onContextMenu={onContextMenu}
                   level={level + 1}
                 />
               ))
@@ -187,7 +200,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, level }:
   )
 }
 
-export function FileTree({ entries, selectedPath, onSelect, onLoadDirectory, level = 0 }: FileTreeProps) {
+export function FileTree({ entries, selectedPath, onSelect, onLoadDirectory, onContextMenu, level = 0 }: FileTreeProps) {
   return (
     <div className="py-1">
       {entries.map((entry) => (
@@ -197,6 +210,7 @@ export function FileTree({ entries, selectedPath, onSelect, onLoadDirectory, lev
           selectedPath={selectedPath}
           onSelect={onSelect}
           onLoadDirectory={onLoadDirectory}
+          onContextMenu={onContextMenu}
           level={level}
         />
       ))}

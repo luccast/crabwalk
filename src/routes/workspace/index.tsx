@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { motion } from 'framer-motion'
 import {
@@ -10,14 +10,21 @@ import {
   PanelLeftClose,
   Star,
   FileText,
+  Plus,
 } from 'lucide-react'
 import { trpc } from '~/integrations/trpc/client'
 import {
   FileTree,
-  MarkdownViewer,
+  FileEditor,
   MobileBottomToolbar,
   MobileFileDrawer,
   MobilePathSheet,
+  ConfirmationDialog,
+  FileContextMenu,
+  TrashIcon,
+  CopyIcon,
+  EditIcon,
+  NewFileDialog,
 } from '~/components/workspace'
 import { NavTabs } from '~/components/navigation'
 import { CrabIdleAnimation } from '~/components/ani'
@@ -356,6 +363,152 @@ function WorkspacePage() {
     })
   }, [])
 
+  // Delete confirmation dialog state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null)
+
+  // New file dialog state
+  const [newFileDialogOpen, setNewFileDialogOpen] = useState(false)
+
+  // Context menu state
+  const [contextMenuOpen, setContextMenuOpen] = useState(false)
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null)
+  const [contextMenuFilePath, setContextMenuFilePath] = useState<string | null>(null)
+
+  // Handle save file with confirmation callback
+  const handleSave = useCallback(
+    async (content: string, callback: (success: boolean) => void) => {
+      if (!selectedPath) {
+        callback(false)
+        return
+      }
+
+      try {
+        await trpc.workspace.writeFile.mutate({
+          workspaceRoot: workspacePath,
+          path: selectedPath,
+          content,
+        })
+        // Reload the file to get updated metadata
+        await loadFile(selectedPath)
+        // Refresh the directory to update metadata
+        await handleRefresh()
+        callback(true)
+      } catch (error) {
+        console.error('Failed to save file:', error)
+        callback(false)
+      }
+    },
+    [selectedPath, workspacePath, loadFile, handleRefresh]
+  )
+
+  // Handle delete file
+  const handleDeleteFile = useCallback(async () => {
+    if (!fileToDelete) return
+
+    try {
+      await trpc.workspace.deleteFile.mutate({
+        workspaceRoot: workspacePath,
+        path: fileToDelete,
+      })
+
+      // If deleted file was selected, clear selection
+      if (selectedPath === fileToDelete) {
+        setSelectedPath(null)
+        setSelectedFileContent('')
+        setSelectedFileName('')
+        setSelectedFileSize(undefined)
+        setSelectedFileModified(undefined)
+      }
+
+      // Clear cache and refresh
+      setPathCache(new Map())
+      await handleRefresh()
+    } catch (error) {
+      console.error('Failed to delete file:', error)
+    } finally {
+      setFileToDelete(null)
+      setDeleteConfirmOpen(false)
+    }
+  }, [fileToDelete, workspacePath, selectedPath, handleRefresh])
+
+  // Handle create file
+  const handleCreateFile = useCallback(
+    async (fileName: string, content: string) => {
+      try {
+        const result = await trpc.workspace.createFile.mutate({
+          workspaceRoot: workspacePath,
+          fileName,
+          content,
+        })
+
+        if (result.success && result.filePath) {
+          // Clear cache and refresh
+          setPathCache(new Map())
+          await handleRefresh()
+
+          // Select the new file
+          setSelectedPath(result.filePath)
+          await loadFile(result.filePath)
+        } else if (result.error) {
+          throw new Error(result.error)
+        }
+      } catch (error) {
+        console.error('Failed to create file:', error)
+        throw error
+      }
+    },
+    [workspacePath, loadFile, handleRefresh]
+  )
+
+  // Handle context menu
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, filePath: string) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setContextMenuFilePath(filePath)
+      setContextMenuPosition({ x: e.clientX, y: e.clientY })
+      setContextMenuOpen(true)
+    },
+    []
+  )
+
+  // Context menu items
+  const contextMenuItems = useMemo(() => [
+    {
+      icon: <EditIcon size={14} />,
+      label: 'Edit',
+      onClick: () => {
+        if (contextMenuFilePath) {
+          handleSelect(contextMenuFilePath, 'file')
+        }
+      },
+    },
+    {
+      icon: <CopyIcon size={14} />,
+      label: 'Copy Path',
+      onClick: async () => {
+        if (contextMenuFilePath) {
+          try {
+            await navigator.clipboard.writeText(contextMenuFilePath)
+          } catch {
+            console.warn('Failed to copy to clipboard')
+          }
+        }
+      },
+    },
+    {
+      icon: <TrashIcon size={14} />,
+      label: 'Delete',
+      danger: true,
+      onClick: () => {
+        if (contextMenuFilePath) {
+          setFileToDelete(contextMenuFilePath)
+          setDeleteConfirmOpen(true)
+        }
+      },
+    },
+  ], [contextMenuFilePath, handleSelect])
 
 
   return (
@@ -436,14 +589,14 @@ function WorkspacePage() {
             transition={{ duration: 0.2, ease: 'easeInOut' }}
             className="border-r border-shell-800 bg-shell-900/50 flex flex-col overflow-hidden"
           >
-          {/* Sidebar header */}
+           {/* Sidebar header */}
           <div className={`flex items-center justify-between px-3 py-3 border-b border-shell-800 ${sidebarCollapsed ? 'justify-center' : ''}`}>
             {!sidebarCollapsed && (
               <span className="font-display text-xs text-shell-500 uppercase tracking-wider">
                 Files
               </span>
             )}
-            <div className={`flex items-center gap-2 ${sidebarCollapsed ? 'mx-auto' : ''}`}>
+            <div className={`flex items-center gap-1 ${sidebarCollapsed ? 'mx-auto flex-col' : ''}`}>
               {loading && !sidebarCollapsed && (
                 <motion.div
                   animate={{ rotate: 360 }}
@@ -451,6 +604,15 @@ function WorkspacePage() {
                 >
                   <RefreshCw size={14} className="text-shell-500" />
                 </motion.div>
+              )}
+              {!sidebarCollapsed && (
+                <button
+                  onClick={() => setNewFileDialogOpen(true)}
+                  className="p-1.5 hover:bg-shell-800 rounded transition-colors"
+                  title="New File"
+                >
+                  <Plus size={16} className="text-shell-500 hover:text-neon-mint" />
+                </button>
               )}
               <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -544,17 +706,18 @@ function WorkspacePage() {
             </>
           )}
 
-          {/* File tree */}
-          {!sidebarCollapsed && (
-            <div className="flex-1 overflow-y-auto overflow-x-hidden py-2">
-              {pathValid ? (
-                <FileTree
-                  entries={rootEntries}
-                  selectedPath={selectedPath}
-                  onSelect={handleSelect}
-                  onLoadDirectory={handleLoadDirectory}
-                />
-              ) : (
+             {/* File tree */}
+           {!sidebarCollapsed && (
+             <div className="flex-1 overflow-y-auto overflow-x-hidden py-2">
+               {pathValid ? (
+                 <FileTree
+                   entries={rootEntries}
+                   selectedPath={selectedPath}
+                   onSelect={handleSelect}
+                   onLoadDirectory={handleLoadDirectory}
+                   onContextMenu={handleContextMenu}
+                 />
+               ) : (
                 <div className="p-4 text-center">
                   <p className="font-console text-xs text-shell-500">
                     Enter a workspace path to browse files
@@ -564,7 +727,7 @@ function WorkspacePage() {
             </div>
           )}
 
-          {/* Sidebar footer */}
+           {/* Sidebar footer */}
           {pathValid && !sidebarCollapsed && (
             <div className="px-4 py-2 border-t border-shell-800">
               <p className="font-console text-[10px] text-shell-600 truncate">
@@ -575,9 +738,9 @@ function WorkspacePage() {
         </motion.div>
         )}
 
-        {/* Main content area */}
+         {/* Main content area */}
         <div className={`flex-1 relative bg-shell-950 ${isMobile ? 'pb-20' : ''}`}>
-          <MarkdownViewer
+          <FileEditor
             content={selectedFileContent}
             fileName={selectedFileName}
             filePath={selectedPath ?? undefined}
@@ -586,6 +749,7 @@ function WorkspacePage() {
             error={fileError}
             isStarred={selectedPath ? starredPaths.has(selectedPath) : false}
             onStar={handleStar}
+            onSave={handleSave}
           />
         </div>
       </div>
@@ -627,6 +791,36 @@ function WorkspacePage() {
           />
         </>
       )}
+
+      {/* Delete confirmation dialog */}
+      <ConfirmationDialog
+        open={deleteConfirmOpen}
+        title="Delete File"
+        message={`Are you sure you want to delete "${fileToDelete?.split('/').pop()}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteFile}
+        onCancel={() => {
+          setDeleteConfirmOpen(false)
+          setFileToDelete(null)
+        }}
+        variant="danger"
+      />
+
+      {/* New file dialog */}
+      <NewFileDialog
+        open={newFileDialogOpen}
+        onClose={() => setNewFileDialogOpen(false)}
+        onCreate={handleCreateFile}
+      />
+
+      {/* Context menu */}
+      <FileContextMenu
+        open={contextMenuOpen}
+        position={contextMenuPosition}
+        items={contextMenuItems}
+        onClose={() => setContextMenuOpen(false)}
+      />
     </div>
   )
 }

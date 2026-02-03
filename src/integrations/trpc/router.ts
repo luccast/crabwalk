@@ -14,6 +14,9 @@ import {
 import {
   listDirectory,
   readFile,
+  writeFile,
+  deleteFile,
+  createFile,
   pathExists,
   getDefaultWorkspacePath,
   expandTilde,
@@ -283,6 +286,59 @@ const workspaceRouter = router({
           path: input.path,
           name: '',
           error: error instanceof Error ? error.message : 'Failed to read file',
+        }
+      }
+    }),
+
+  // Write file contents
+  writeFile: publicProcedure
+    .input(z.object({ workspaceRoot: z.string(), path: z.string(), content: z.string() }))
+    .mutation(async ({ input }): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const expandedRoot = expandTilde(input.workspaceRoot)
+        const expandedPath = expandTilde(input.path)
+        await writeFile(expandedRoot, expandedPath, input.content)
+        return { success: true }
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to write file',
+        }
+      }
+    }),
+
+  // Delete file
+  deleteFile: publicProcedure
+    .input(z.object({ workspaceRoot: z.string(), path: z.string() }))
+    .mutation(async ({ input }): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const expandedRoot = expandTilde(input.workspaceRoot)
+        const expandedPath = expandTilde(input.path)
+        await deleteFile(expandedRoot, expandedPath)
+        return { success: true }
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to delete file',
+        }
+      }
+    }),
+
+  // Create file
+  createFile: publicProcedure
+    .input(z.object({ workspaceRoot: z.string(), fileName: z.string(), content: z.string().optional() }))
+    .mutation(async ({ input }): Promise<{ success: boolean; error?: string; filePath?: string }> => {
+      try {
+        const expandedRoot = expandTilde(input.workspaceRoot)
+        // Construct path server-side using Node.js path.join
+        const path = await import('path')
+        const fullPath = path.join(expandedRoot, input.fileName)
+        await createFile(expandedRoot, fullPath, input.content || '')
+        return { success: true, filePath: fullPath }
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to create file',
         }
       }
     }),

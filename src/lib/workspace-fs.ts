@@ -24,26 +24,31 @@ export interface FileContent {
 
 /**
  * Validates that a path is within the allowed workspace root
- * Prevents directory traversal attacks
+ * Prevents directory traversal attacks and symlink escapes
  */
-export function validatePath(workspaceRoot: string, targetPath: string): string {
+export async function validatePath(workspaceRoot: string, targetPath: string): Promise<string> {
   // Resolve to absolute paths
   const resolvedRoot = path.resolve(workspaceRoot)
   const resolvedTarget = path.resolve(targetPath)
 
+  // Resolve symlinks to prevent escaping workspace via symlinked paths
+  // This ensures we validate the actual filesystem location, not the symlink itself
+  const realRoot = await fs.realpath(resolvedRoot)
+  const realTarget = await fs.realpath(resolvedTarget)
+
   // Normalize paths for cross-platform comparison
   // Convert backslashes to forward slashes and ensure consistent formatting
   const normalizeForComparison = (p: string) => p.replace(/\\/g, '/').replace(/\/$/, '')
-  const normalizedRoot = normalizeForComparison(resolvedRoot) + '/'
-  const normalizedTarget = normalizeForComparison(resolvedTarget)
+  const normalizedRoot = normalizeForComparison(realRoot) + '/'
+  const normalizedTarget = normalizeForComparison(realTarget)
 
   // Ensure target path is within root path by checking with trailing separator
   // This prevents bypasses like /home/user/workspace-evil matching /home/user/workspace
-  if (!normalizedTarget.startsWith(normalizedRoot) && normalizedTarget !== normalizeForComparison(resolvedRoot)) {
+  if (!normalizedTarget.startsWith(normalizedRoot) && normalizedTarget !== normalizeForComparison(realRoot)) {
     throw new Error('Path traversal detected: target path is outside workspace root')
   }
 
-  return resolvedTarget
+  return realTarget
 }
 
 /**
@@ -54,7 +59,7 @@ export async function listDirectory(
   workspaceRoot: string,
   targetPath: string
 ): Promise<DirectoryEntry[]> {
-  const safePath = validatePath(workspaceRoot, targetPath)
+  const safePath = await validatePath(workspaceRoot, targetPath)
 
   try {
     const entries = await fs.readdir(safePath, { withFileTypes: true })
@@ -111,7 +116,7 @@ export async function readFile(
   workspaceRoot: string,
   filePath: string
 ): Promise<FileContent> {
-  const safePath = validatePath(workspaceRoot, filePath)
+  const safePath = await validatePath(workspaceRoot, filePath)
 
   try {
     // Check if file exists and is a file
@@ -249,4 +254,102 @@ export function isTextFile(filename: string): boolean {
   const lastDotIndex = filename.lastIndexOf('.')
   const ext = lastDotIndex > 0 ? path.extname(filename).toLowerCase() : ''
   return textExtensions.includes(ext) || ext === ''
+}
+
+/**
+ * Writes content to a file
+ * Creates the file if it doesn't exist, overwrites if it does
+ */
+export async function writeFile(
+  workspaceRoot: string,
+  filePath: string,
+  content: string
+): Promise<void> {
+  const safePath = await validatePath(workspaceRoot, filePath)
+
+  try {
+    // Check if parent directory exists
+    const parentDir = path.dirname(safePath)
+    const parentStats = await fs.stat(parentDir)
+    if (!parentStats.isDirectory()) {
+      throw new Error('Parent path is not a directory')
+    }
+
+    // Write file content
+    await fs.writeFile(safePath, content, 'utf-8')
+  } catch (error) {
+    throw new Error(
+      `Failed to write file: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
+  }
+}
+
+/**
+ * Deletes a file
+ */
+export async function deleteFile(
+  workspaceRoot: string,
+  filePath: string
+): Promise<void> {
+  const safePath = await validatePath(workspaceRoot, filePath)
+
+  try {
+    // Check if file exists and is a file
+    const stats = await fs.stat(safePath)
+    if (!stats.isFile()) {
+      throw new Error('Path is not a file')
+    }
+
+    // Delete the file
+    await fs.unlink(safePath)
+  } catch (error) {
+    throw new Error(
+      `Failed to delete file: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
+  }
+}
+
+/**
+ * Creates a new file with optional content
+ */
+export async function createFile(
+  workspaceRoot: string,
+  filePath: string,
+  content: string = ''
+): Promise<void> {
+  // Expand user home directory and resolve path
+  const expandedRoot = expandTilde(workspaceRoot)
+  const expandedFilePath = expandTilde(filePath)
+  
+  // Get the parent directory path
+  const parentDir = path.dirname(expandedFilePath)
+  const fileName = path.basename(expandedFilePath)
+  
+  // Validate that parent directory is within workspace root
+  const safeParentPath = await validatePath(expandedRoot, parentDir)
+  
+  // Check if file already exists
+  const exists = await pathExists(expandedFilePath)
+  if (exists) {
+    throw new Error('File already exists')
+  }
+
+  // Check if parent directory exists
+  try {
+    const parentStats = await fs.stat(safeParentPath)
+    if (!parentStats.isDirectory()) {
+      throw new Error('Parent path is not a directory')
+    }
+  } catch {
+    throw new Error('Parent directory does not exist')
+  }
+
+  // Create the file
+  try {
+    await fs.writeFile(expandedFilePath, content, 'utf-8')
+  } catch (error) {
+    throw new Error(
+      `Failed to create file: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
+  }
 }
