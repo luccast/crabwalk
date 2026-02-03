@@ -1,0 +1,18 @@
+ Crabwalk - OpenClaw Session Monitor
+
+Thank you for using the Windows Special Adaptation Edition!
+
+🎯 Features:
+- Real-time session monitoring
+- Activity visualization  
+- Native Windows support
+
+🚀 Quick Start:
+1. Ensure Node.js is installed
+2. Start the OpenClaw daemon process
+3. Double-click "Start Crabwalk.bat"
+4. Visit http://localhost:3000
+
+📚 For more information, please check README.md
+
+Version: 1.0.8 Windows Edition
