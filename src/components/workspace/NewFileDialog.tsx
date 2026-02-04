@@ -6,9 +6,10 @@ interface NewFileDialogProps {
   open: boolean
   onClose: () => void
   onCreate: (fileName: string, content: string) => void
+  folderPath?: string // If set, file is created in this folder
 }
 
-export function NewFileDialog({ open, onClose, onCreate }: NewFileDialogProps) {
+export function NewFileDialog({ open, onClose, onCreate, folderPath }: NewFileDialogProps) {
   const [fileName, setFileName] = useState('')
   const [content, setContent] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -97,7 +98,14 @@ export function NewFileDialog({ open, onClose, onCreate }: NewFileDialogProps) {
               <div className="p-2 rounded-lg bg-neon-mint/10 border border-neon-mint/30">
                 <Plus size={20} className="text-neon-mint" />
               </div>
-              <h3 className="font-display text-lg text-gray-200">Create New File</h3>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-display text-lg text-gray-200">Create New File</h3>
+                {folderPath && (
+                  <p className="font-console text-xs text-shell-500 truncate">
+                    in {folderPath.split('/').pop()}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Content */}

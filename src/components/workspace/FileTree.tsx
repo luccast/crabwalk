@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { ChevronRight, ChevronDown, Folder, FolderOpen, FileText } from 'lucide-react'
+import { ChevronRight, ChevronDown, Folder, FolderOpen, FileText, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { DirectoryEntry } from '~/lib/workspace-fs'
 
@@ -19,6 +19,7 @@ interface FileTreeProps {
   onSelect: (path: string, type: 'file' | 'directory') => void
   onLoadDirectory?: (path: string) => Promise<DirectoryEntry[]>
   onContextMenu?: (e: React.MouseEvent, path: string) => void
+  onCreateFile?: (folderPath: string) => void
   level?: number
 }
 
@@ -28,10 +29,11 @@ interface FileTreeItemProps {
   onSelect: (path: string, type: 'file' | 'directory') => void
   onLoadDirectory?: (path: string) => Promise<DirectoryEntry[]>
   onContextMenu?: (e: React.MouseEvent, path: string) => void
+  onCreateFile?: (folderPath: string) => void
   level: number
 }
 
-function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onContextMenu, level }: FileTreeItemProps) {
+function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onContextMenu, onCreateFile, level }: FileTreeItemProps) {
   const [expanded, setExpanded] = useState(false)
   const [children, setChildren] = useState<DirectoryEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -102,7 +104,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onContex
         onClick={handleClick}
         onContextMenu={handleContextMenuFn}
         style={{ paddingLeft }}
-        className={`flex items-center gap-2 py-1.5 pr-2 text-left transition-all duration-150 rounded-md mr-1 cursor-pointer ${
+        className={`group flex items-center gap-2 py-1.5 pr-2 text-left transition-all duration-150 rounded-md mr-1 cursor-pointer ${
           isSelected
             ? 'bg-crab-500/20 text-crab-400 border-l-2 border-crab-400'
             : 'text-gray-300 hover:bg-shell-800 hover:text-gray-100 border-l-2 border-transparent'
@@ -164,6 +166,20 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onContex
             {entry.size !== undefined && formatFileSize(entry.size)}
           </span>
         )}
+
+        {/* Add file button for directories */}
+        {isDirectory && onCreateFile && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onCreateFile(entry.path)
+            }}
+            className="p-1 opacity-0 group-hover:opacity-100 hover:bg-shell-700 rounded transition-all flex-shrink-0"
+            title="New file in this folder"
+          >
+            <Plus size={14} className="text-shell-500 hover:text-neon-mint" />
+          </button>
+        )}
       </motion.div>
 
       {/* Children */}
@@ -185,6 +201,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onContex
                   onSelect={onSelect}
                   onLoadDirectory={onLoadDirectory}
                   onContextMenu={onContextMenu}
+                  onCreateFile={onCreateFile}
                   level={level + 1}
                 />
               ))
@@ -200,7 +217,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onContex
   )
 }
 
-export function FileTree({ entries, selectedPath, onSelect, onLoadDirectory, onContextMenu, level = 0 }: FileTreeProps) {
+export function FileTree({ entries, selectedPath, onSelect, onLoadDirectory, onContextMenu, onCreateFile, level = 0 }: FileTreeProps) {
   return (
     <div className="py-1">
       {entries.map((entry) => (
@@ -211,6 +228,7 @@ export function FileTree({ entries, selectedPath, onSelect, onLoadDirectory, onC
           onSelect={onSelect}
           onLoadDirectory={onLoadDirectory}
           onContextMenu={onContextMenu}
+          onCreateFile={onCreateFile}
           level={level}
         />
       ))}

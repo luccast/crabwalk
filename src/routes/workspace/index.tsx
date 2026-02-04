@@ -369,6 +369,7 @@ function WorkspacePage() {
 
   // New file dialog state
   const [newFileDialogOpen, setNewFileDialogOpen] = useState(false)
+  const [newFileFolderPath, setNewFileFolderPath] = useState<string | null>(null)
 
   // Context menu state
   const [contextMenuOpen, setContextMenuOpen] = useState(false)
@@ -435,13 +436,20 @@ function WorkspacePage() {
     }
   }, [fileToDelete, workspacePath, selectedPath, handleRefresh])
 
-  // Handle create file
+  // Handle create file (uses newFileFolderPath if set)
   const handleCreateFile = useCallback(
     async (fileName: string, content: string) => {
       try {
+        // If creating in a subfolder, prepend the relative path
+        let finalFileName = fileName
+        if (newFileFolderPath && newFileFolderPath !== workspacePath) {
+          const relativePath = newFileFolderPath.replace(workspacePath + '/', '')
+          finalFileName = `${relativePath}/${fileName}`
+        }
+
         const result = await trpc.workspace.createFile.mutate({
           workspaceRoot: workspacePath,
-          fileName,
+          fileName: finalFileName,
           content,
         })
 
@@ -459,9 +467,11 @@ function WorkspacePage() {
       } catch (error) {
         console.error('Failed to create file:', error)
         throw error
+      } finally {
+        setNewFileFolderPath(null)
       }
     },
-    [workspacePath, loadFile, handleRefresh]
+    [workspacePath, newFileFolderPath, loadFile, handleRefresh]
   )
 
   // Handle context menu
@@ -475,6 +485,12 @@ function WorkspacePage() {
     },
     []
   )
+
+  // Handle create file in folder (from + button in tree)
+  const handleCreateFileInFolder = useCallback((folderPath: string) => {
+    setNewFileFolderPath(folderPath)
+    setNewFileDialogOpen(true)
+  }, [])
 
   // Context menu items
   const contextMenuItems = useMemo(() => [
@@ -721,6 +737,7 @@ function WorkspacePage() {
                    onSelect={handleSelect}
                    onLoadDirectory={handleLoadDirectory}
                    onContextMenu={handleContextMenu}
+                   onCreateFile={handleCreateFileInFolder}
                  />
                ) : (
                 <div className="p-4 text-center">
@@ -815,8 +832,12 @@ function WorkspacePage() {
       {/* New file dialog */}
       <NewFileDialog
         open={newFileDialogOpen}
-        onClose={() => setNewFileDialogOpen(false)}
+        onClose={() => {
+          setNewFileDialogOpen(false)
+          setNewFileFolderPath(null)
+        }}
         onCreate={handleCreateFile}
+        folderPath={newFileFolderPath ?? undefined}
       />
 
       {/* Context menu */}
