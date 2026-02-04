@@ -138,14 +138,14 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onContex
         {/* Icon */}
         {isDirectory ? (
           expanded ? (
-            <FolderOpen size={16} className="text-neon-mint flex-shrink-0" />
+            <FolderOpen size={16} className="text-neon-mint shrink-0" />
           ) : (
-            <Folder size={16} className="text-neon-mint flex-shrink-0" />
+            <Folder size={16} className="text-neon-mint shrink-0" />
           )
         ) : (
           <FileText
             size={16}
-            className={`flex-shrink-0 ${
+            className={`shrink-0 ${
               entry.extension === '.md' ? 'text-crab-400' : 'text-shell-500'
             }`}
           />
@@ -162,7 +162,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onContex
 
         {/* Metadata for files */}
         {!isDirectory && (
-          <span className={`font-console text-[10px] flex-shrink-0 ${isSelected ? 'text-crab-400/70' : 'text-shell-600'}`}>
+          <span className={`font-console text-[11px] shrink-0 ${isSelected ? 'text-crab-400/70' : 'text-shell-600'}`}>
             {entry.size !== undefined && formatFileSize(entry.size)}
           </span>
         )}
@@ -174,7 +174,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onContex
               e.stopPropagation()
               onCreateFile(entry.path)
             }}
-            className="p-1 opacity-0 group-hover:opacity-100 hover:bg-shell-700 rounded transition-all flex-shrink-0"
+            className="p-1 opacity-0 group-hover:opacity-100 hover:bg-shell-700 rounded transition-all shrink-0"
             title="New file in this folder"
           >
             <Plus size={14} className="text-shell-500 hover:text-neon-mint" />
