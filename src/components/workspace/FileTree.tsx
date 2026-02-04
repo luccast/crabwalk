@@ -162,7 +162,7 @@ function FileTreeItem({ entry, selectedPath, onSelect, onLoadDirectory, onContex
 
         {/* Metadata for files */}
         {!isDirectory && (
-          <span className="font-console text-[10px] text-shell-600 flex-shrink-0">
+          <span className={`font-console text-[10px] flex-shrink-0 ${isSelected ? 'text-crab-400/70' : 'text-shell-600'}`}>
             {entry.size !== undefined && formatFileSize(entry.size)}
           </span>
         )}
