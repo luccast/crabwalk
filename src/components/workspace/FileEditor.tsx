@@ -334,7 +334,7 @@ export function FileEditor({
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="w-full h-full min-h-[400px] bg-shell-900 border border-shell-700 rounded-lg p-4 font-mono text-sm text-gray-300 placeholder-shell-600 resize-none focus:outline-none focus:border-crab-500 focus:ring-1 focus:ring-crab-500/20 wrap-break-words"
+                  className="w-full h-full min-h-[400px] bg-shell-900 border border-shell-700 rounded-lg p-4 font-mono text-sm font-light text-gray-300 placeholder-shell-600 resize-none focus:outline-none focus:border-crab-500 focus:ring-1 focus:ring-crab-500/20 wrap-break-words"
                   spellCheck={false}
                   autoCapitalize="off"
                   autoCorrect="off"
