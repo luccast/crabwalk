@@ -201,123 +201,132 @@ export function FileEditor({
   return (
     <div className="h-full flex flex-col">
       {/* File header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-shell-800 bg-shell-900/50">
-        {/* Star button */}
-        {filePath && onStar && (
-          <button
-            onClick={() => onStar(filePath)}
-            className={`p-1 rounded transition-colors ${
-              isStarred
-                ? 'text-yellow-400 hover:text-yellow-300'
-                : 'text-shell-600 hover:text-yellow-400'
-            }`}
-            title={isStarred ? 'Unstar file' : 'Star file'}
-          >
-            <Star size={16} fill={isStarred ? 'currentColor' : 'none'} />
-          </button>
-        )}
-        <FileText size={18} className={isMarkdown ? 'text-crab-400' : 'text-shell-500'} />
-        <h2 className="font-display text-sm text-gray-200">{fileName}</h2>
-        {isMarkdown && (
-          <span className="px-2 py-0.5 bg-crab-900/30 text-crab-400 text-[10px] font-console uppercase rounded border border-crab-700/30">
-            Markdown
-          </span>
-        )}
-        
-        {/* Edit mode indicator */}
-        {isEditing && (
-          <span className="px-2 py-0.5 bg-neon-mint/10 text-neon-mint text-[10px] font-console uppercase rounded border border-neon-mint/30">
-            Editing
-          </span>
-        )}
-        
-        {/* Unsaved changes indicator */}
-        {isEditing && hasUnsavedChanges && (
-          <span className="px-2 py-0.5 bg-neon-peach/10 text-neon-peach text-[10px] font-console uppercase rounded border border-neon-peach/30 animate-pulse">
-            Unsaved
-          </span>
-        )}
-
-        {/* Save status */}
-        <AnimatePresence>
-          {isEditing && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="flex items-center gap-1.5"
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-shell-800 bg-shell-900/50 min-w-0">
+        {/* Left: Controls - always visible, fixed width */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Star button */}
+          {filePath && onStar && (
+            <button
+              onClick={() => onStar(filePath)}
+              className={`p-1.5 rounded transition-colors ${
+                isStarred
+                  ? 'text-yellow-400 hover:text-yellow-300'
+                  : 'text-shell-600 hover:text-yellow-400'
+              }`}
+              title={isStarred ? 'Unstar file' : 'Star file'}
             >
-              {saveStatus === 'saving' && (
-                <>
-                  <div className="w-2.5 h-2.5 border-2 border-neon-cyan border-t-transparent rounded-full animate-spin" />
-                  <span className="font-console text-[10px] text-neon-cyan">Saving...</span>
-                </>
-              )}
-              {saveStatus === 'saved' && (
-                <>
-                  <Check size={12} className="text-neon-mint" />
-                  <span className="font-console text-[10px] text-neon-mint">Saved</span>
-                </>
-              )}
-              {saveStatus === 'error' && (
-                <>
-                  <AlertCircle size={12} className="text-neon-peach" />
-                  <span className="font-console text-[10px] text-neon-peach">Save failed</span>
-                </>
-              )}
-            </motion.div>
+              <Star size={16} fill={isStarred ? 'currentColor' : 'none'} />
+            </button>
           )}
-        </AnimatePresence>
 
-        {/* File metadata */}
-        <div className="flex items-center gap-3 ml-auto">
-          {fileSize !== undefined && (
-            <span className="font-console text-[10px] text-shell-500">
-              {formatFileSize(fileSize)}
-            </span>
-          )}
-          {fileModified && (
-            <span className="font-console text-[10px] text-shell-500">
-              {formatModifiedDate(fileModified)}
-            </span>
+          {/* Action buttons */}
+          {onSave && (
+            <div className="flex items-center gap-1">
+              {!isEditing ? (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 transition-colors border border-shell-700"
+                  title="Edit file (or press E)"
+                >
+                  <Edit2 size={14} />
+                  <span className="hidden sm:inline">Edit</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving || !hasUnsavedChanges}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neon-mint/10 hover:bg-neon-mint/20 rounded-lg text-sm font-console text-neon-mint transition-colors border border-neon-mint/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Save (Ctrl+S)"
+                  >
+                    <Save size={14} />
+                    <span className="hidden sm:inline">Save</span>
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 transition-colors border border-shell-700"
+                    title="Cancel (Esc)"
+                  >
+                    <X size={14} />
+                    <span className="hidden sm:inline">Cancel</span>
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Action buttons */}
-        {onSave && (
-          <div className="flex items-center gap-1 w-auto ml-auto">
-            {!isEditing ? (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 transition-colors border border-shell-700"
-                title="Edit file (or press E)"
+        {/* Middle: Filename and indicators - flexes and truncates */}
+        <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
+          <FileText size={18} className={`flex-shrink-0 ${isMarkdown ? 'text-crab-400' : 'text-shell-500'}`} />
+          <h2 className="font-display text-sm text-gray-200 truncate min-w-0">{fileName}</h2>
+          {isMarkdown && (
+            <span className="hidden sm:inline px-2 py-0.5 bg-crab-900/30 text-crab-400 text-[10px] font-console uppercase rounded border border-crab-700/30 flex-shrink-0">
+              Markdown
+            </span>
+          )}
+          
+          {/* Edit mode indicator */}
+          {isEditing && (
+            <span className="hidden sm:inline px-2 py-0.5 bg-neon-mint/10 text-neon-mint text-[10px] font-console uppercase rounded border border-neon-mint/30 flex-shrink-0">
+              Editing
+            </span>
+          )}
+          
+          {/* Unsaved changes indicator */}
+          {isEditing && hasUnsavedChanges && (
+            <span className="hidden sm:inline px-2 py-0.5 bg-neon-peach/10 text-neon-peach text-[10px] font-console uppercase rounded border border-neon-peach/30 animate-pulse flex-shrink-0">
+              Unsaved
+            </span>
+          )}
+
+          {/* Save status */}
+          <AnimatePresence>
+            {isEditing && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="hidden sm:flex items-center gap-1.5 flex-shrink-0"
               >
-                <Edit2 size={14} />
-                <span className="hidden sm:inline">Edit</span>
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving || !hasUnsavedChanges}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-neon-mint/10 hover:bg-neon-mint/20 rounded-lg text-sm font-console text-neon-mint transition-colors border border-neon-mint/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Save (Ctrl+S)"
-                >
-                  <Save size={14} />
-                  <span className="hidden sm:inline">Save</span>
-                </button>
-                <button
-                  onClick={handleCancel}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 transition-colors border border-shell-700"
-                  title="Cancel (Esc)"
-                >
-                  <X size={14} />
-                  <span className="hidden sm:inline">Cancel</span>
-                </button>
-              </>
+                {saveStatus === 'saving' && (
+                  <>
+                    <div className="w-2.5 h-2.5 border-2 border-neon-cyan border-t-transparent rounded-full animate-spin" />
+                    <span className="font-console text-[10px] text-neon-cyan">Saving...</span>
+                  </>
+                )}
+                {saveStatus === 'saved' && (
+                  <>
+                    <Check size={12} className="text-neon-mint" />
+                    <span className="font-console text-[10px] text-neon-mint">Saved</span>
+                  </>
+                )}
+                {saveStatus === 'error' && (
+                  <>
+                    <AlertCircle size={12} className="text-neon-peach" />
+                    <span className="font-console text-[10px] text-neon-peach">Save failed</span>
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Right: Metadata - shows when space allows, hides on very small screens */}
+        <div className="flex items-center gap-3 flex-shrink-0 overflow-hidden">
+          <div className="hidden min-[480px]:flex items-center gap-3">
+            {fileSize !== undefined && (
+              <span className="font-console text-[10px] text-shell-500 whitespace-nowrap">
+                {formatFileSize(fileSize)}
+              </span>
+            )}
+            {fileModified && (
+              <span className="font-console text-[10px] text-shell-500 whitespace-nowrap">
+                {formatModifiedDate(fileModified)}
+              </span>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Content */}
@@ -351,9 +360,10 @@ export function FileEditor({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
+                className="min-w-0"
               >
                 {isMarkdown ? (
-                  <div className="prose prose-invert prose-sm max-w-none break-words">
+                  <div className="prose prose-invert prose-sm max-w-full break-words">
                     <ReactMarkdown
                       components={{
                         h1: ({ children }) => (
@@ -377,8 +387,8 @@ export function FileEditor({
                               {children}
                             </code>
                           ) : (
-                            <pre className="bg-shell-900 border border-shell-800 rounded-lg p-4 overflow-x-auto mb-4">
-                              <code className="text-sm font-mono text-gray-300">{children}</code>
+                            <pre className="bg-shell-900 border border-shell-800 rounded-lg p-4 mb-4 max-w-full">
+                              <code className="text-xs sm:text-sm font-mono text-gray-300 whitespace-pre-wrap break-all">{children}</code>
                             </pre>
                           )
                         },
@@ -427,7 +437,7 @@ export function FileEditor({
                     </ReactMarkdown>
                   </div>
                 ) : (
-                  <pre className="font-mono text-sm text-gray-300 whitespace-pre-wrap break-words">{content}</pre>
+                  <pre className="font-mono text-xs sm:text-sm text-gray-300 whitespace-pre-wrap break-all overflow-x-auto max-w-full">{content}</pre>
                 )}
               </motion.div>
             )}
