@@ -375,6 +375,9 @@ function WorkspacePage() {
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null)
   const [contextMenuFilePath, setContextMenuFilePath] = useState<string | null>(null)
 
+  // Clipboard feedback state
+  const [copyFeedback, setCopyFeedback] = useState<'idle' | 'copied' | 'failed'>('idle')
+
   // Handle save file with confirmation callback
   const handleSave = useCallback(
     async (content: string, callback: (success: boolean) => void) => {
@@ -486,13 +489,16 @@ function WorkspacePage() {
     },
     {
       icon: <CopyIcon size={14} />,
-      label: 'Copy Path',
+      label: copyFeedback === 'copied' ? 'Copied!' : copyFeedback === 'failed' ? 'Failed' : 'Copy Path',
       onClick: async () => {
         if (contextMenuFilePath) {
           try {
             await navigator.clipboard.writeText(contextMenuFilePath)
+            setCopyFeedback('copied')
+            setTimeout(() => setCopyFeedback('idle'), 2000)
           } catch {
-            console.warn('Failed to copy to clipboard')
+            setCopyFeedback('failed')
+            setTimeout(() => setCopyFeedback('idle'), 2000)
           }
         }
       },
@@ -508,8 +514,7 @@ function WorkspacePage() {
         }
       },
     },
-  ], [contextMenuFilePath, handleSelect])
-
+  ], [contextMenuFilePath, handleSelect, copyFeedback])
 
   return (
     <div className="h-screen flex flex-col bg-shell-950 text-white overflow-hidden">

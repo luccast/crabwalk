@@ -340,7 +340,11 @@ export async function createFile(
     if (!parentStats.isDirectory()) {
       throw new Error('Parent path is not a directory')
     }
-  } catch {
+  } catch (error) {
+    // Preserve original error if it's already a descriptive error we threw
+    if (error instanceof Error && error.message === 'Parent path is not a directory') {
+      throw error
+    }
     throw new Error('Parent directory does not exist')
   }
 

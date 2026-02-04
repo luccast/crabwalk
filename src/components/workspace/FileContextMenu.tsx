@@ -81,9 +81,9 @@ export function FileContextMenu({ open, position, items, onClose }: FileContextM
         >
           {/* Menu items */}
           <div className="py-1">
-            {items.map((item, index) => (
+            {items.map((item) => (
               <button
-                key={index}
+                key={item.label}
                 onClick={() => {
                   item.onClick()
                   onClose()
