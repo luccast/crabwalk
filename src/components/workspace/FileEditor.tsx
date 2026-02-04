@@ -228,13 +228,6 @@ export function FileEditor({
             </span>
           )}
 
-          {/* Edit mode indicator */}
-          {isEditing && (
-            <span className="hidden sm:inline px-2 py-0.5 bg-neon-mint/10 text-neon-mint text-[11px] font-console uppercase rounded border border-neon-mint/30 flex-shrink-0">
-              Editing
-            </span>
-          )}
-
           {/* Unsaved changes indicator */}
           {isEditing && hasUnsavedChanges && (
             <span className="hidden sm:inline px-2 py-0.5 bg-neon-peach/10 text-neon-peach text-[11px] font-console uppercase rounded border border-neon-peach/30 animate-pulse flex-shrink-0">
