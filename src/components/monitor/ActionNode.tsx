@@ -190,7 +190,7 @@ export const ActionNode = memo(function ActionNode({
       )}
 
       {data.toolName && (
-        <div className="font-console text-[10px] text-neon-lavender mb-1.5">
+        <div className="font-console text-[11px] text-neon-lavender mb-1.5">
           <span className="text-shell-500">tool:</span> {data.toolName}
         </div>
       )}

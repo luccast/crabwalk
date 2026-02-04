@@ -75,7 +75,7 @@ function SubagentItem({
         </div>
       ) : (
         <>
-          <div className="font-display text-[9px] font-medium text-neon-cyan/60 uppercase tracking-widest mb-1">
+          <div className="font-display text-[11px] font-medium text-neon-cyan/60 uppercase tracking-widest mb-1">
             subagent
           </div>
           <div className="flex items-center gap-2">
@@ -271,7 +271,7 @@ export function SessionList({
                   </div>
                 ) : (
                   <>
-                    <div className="font-display text-[9px] font-medium text-shell-500 uppercase tracking-widest mb-1">
+                    <div className="font-display text-[11px] font-medium text-shell-500 uppercase tracking-widest mb-1">
                       main
                     </div>
                     <div className="flex items-center gap-2 mb-1.5">

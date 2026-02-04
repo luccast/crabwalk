@@ -132,7 +132,7 @@ export const ExecNode = memo(function ExecNode({ data, selected }: ExecNodeProps
         </span>
         <span
           className={`
-            ml-1 px-2 py-0.5 rounded-md border text-[10px] font-console truncate max-w-[220px]
+            ml-1 px-2 py-0.5 rounded-md border text-[11px] font-console truncate max-w-[220px]
             border-shell-700 ${status.badgeColor}
           `}
           title={data.command}
@@ -201,7 +201,7 @@ export const ExecNode = memo(function ExecNode({ data, selected }: ExecNodeProps
       </div>
 
       {data.outputTruncated && (
-        <div className="mb-1.5 text-[10px] font-console text-neon-peach">
+        <div className="mb-1.5 text-[11px] font-console text-neon-peach">
           output truncated
         </div>
       )}
@@ -214,7 +214,7 @@ export const ExecNode = memo(function ExecNode({ data, selected }: ExecNodeProps
 
       {hasOutput && expanded && (
         <div className="mt-1.5 border border-shell-800 rounded bg-shell-950/60 max-h-[320px] overflow-auto">
-          <div className="sticky top-0 z-10 flex items-center justify-between px-2 py-1 text-[10px] font-console text-shell-500 bg-shell-950/90 border-b border-shell-800">
+          <div className="sticky top-0 z-10 flex items-center justify-between px-2 py-1 text-[11px] font-console text-shell-500 bg-shell-950/90 border-b border-shell-800">
             <span>{status.label}</span>
             <span>{data.outputs.length} chunks</span>
           </div>
@@ -224,7 +224,7 @@ export const ExecNode = memo(function ExecNode({ data, selected }: ExecNodeProps
                 key={chunk.id}
                 className={`border rounded px-2 py-1 ${streamStyle(chunk.stream)}`}
               >
-                <div className="flex items-center gap-2 mb-1 text-[10px] font-console text-shell-500">
+                <div className="flex items-center gap-2 mb-1 text-[11px] font-console text-shell-500">
                   <span className={chunk.stream === 'stderr' ? 'text-crab-300' : 'text-neon-cyan'}>
                     {chunk.stream}
                   </span>

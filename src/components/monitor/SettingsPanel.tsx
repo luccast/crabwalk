@@ -148,7 +148,7 @@ export function SettingsPanel({
                     </span>
                   </div>
 
-                  <p className="font-console text-[10px] text-shell-500 mb-4">
+                  <p className="font-console text-[11px] text-shell-500 mb-4">
                     <span className="text-crab-600">&gt;</span> log raw events to terminal
                   </p>
 
@@ -173,17 +173,17 @@ export function SettingsPanel({
                     </span>
                   </div>
 
-                  <p className="font-console text-[10px] text-shell-500 mb-3">
+                  <p className="font-console text-[11px] text-shell-500 mb-3">
                     <span className="text-crab-600">&gt;</span> persist data across refreshes
                   </p>
 
                   {persistenceEnabled && persistenceStartedAt && (
-                    <div className="font-console text-[10px] text-neon-mint mb-2">
+                    <div className="font-console text-[11px] text-neon-mint mb-2">
                       <span className="text-crab-600">&gt;</span> running since {new Date(persistenceStartedAt).toLocaleTimeString()}
                     </div>
                   )}
 
-                  <div className="font-console text-[10px] text-shell-400 mb-3 space-y-1">
+                  <div className="font-console text-[11px] text-shell-400 mb-3 space-y-1">
                     <div>
                       <span className="text-crab-600">&gt;</span> {persistenceSessionCount} sessions
                     </div>
@@ -232,7 +232,7 @@ export function SettingsPanel({
                       </div>
                       <button
                         onClick={() => onHistoricalModeChange(!historicalMode)}
-                        className={`px-3 py-1 font-display text-[10px] uppercase tracking-wide rounded transition-all ${
+                        className={`px-3 py-1 font-display text-[11px] uppercase tracking-wide rounded transition-all ${
                           historicalMode
                             ? 'bg-neon-cyan/20 text-neon-cyan'
                             : 'bg-shell-800 text-gray-500 hover:bg-shell-700'
@@ -241,7 +241,7 @@ export function SettingsPanel({
                         {historicalMode ? 'On' : 'Off'}
                       </button>
                     </div>
-                    <p className="font-console text-[10px] text-shell-500">
+                    <p className="font-console text-[11px] text-shell-500">
                       <span className="text-crab-600">&gt;</span> fetch 24h of sessions from gateway on refresh
                     </p>
                   </div>
@@ -256,12 +256,12 @@ export function SettingsPanel({
                     </span>
                   </div>
 
-                  <p className="font-console text-[10px] text-shell-500 mb-3">
+                  <p className="font-console text-[11px] text-shell-500 mb-3">
                     <span className="text-crab-600">&gt;</span> collect raw events for export
                   </p>
 
                   {logCount > 0 && (
-                    <div className="font-console text-[10px] text-neon-mint mb-3">
+                    <div className="font-console text-[11px] text-neon-mint mb-3">
                       <span className="text-crab-600">&gt;</span> {logCount} events collected
                     </div>
                   )}
@@ -303,7 +303,7 @@ export function SettingsPanel({
                     <span className="text-crab-600">❮</span> Gateway Info <span className="text-crab-600">❯</span>
                   </h3>
 
-                  <div className="font-console text-[10px] text-shell-500 space-y-1.5">
+                  <div className="font-console text-[11px] text-shell-500 space-y-1.5">
                     <div>
                       <span className="text-crab-600">&gt;</span> endpoint: ws://127.0.0.1:18789
                     </div>
@@ -323,7 +323,7 @@ export function SettingsPanel({
                 {/* Version badge */}
                 <div className="flex items-center justify-center gap-2 pt-4">
                   <span className="w-2 h-2 rounded-full bg-neon-mint animate-pulse" />
-                  <span className="font-console text-[10px] text-shell-500">
+                  <span className="font-console text-[11px] text-shell-500">
                     crabwalk v{version}
                   </span>
                 </div>

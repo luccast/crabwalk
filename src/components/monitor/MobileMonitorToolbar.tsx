@@ -39,7 +39,7 @@ export function MobileMonitorToolbar({
           >
             <PanelLeft size={22} />
             {sessionCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-crab-600 text-white text-[10px] font-display rounded-full">
+              <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-crab-600 text-white text-[11px] font-display rounded-full">
                 {sessionCount > 99 ? '99+' : sessionCount}
               </span>
             )}
@@ -56,7 +56,7 @@ export function MobileMonitorToolbar({
             <div className="w-px h-4 bg-shell-700" />
             <div className="flex items-center gap-1.5">
               <span className="font-display text-sm text-neon-peach">{actionCount}</span>
-              <span className="font-console text-[10px] text-shell-500 uppercase">acts</span>
+              <span className="font-console text-[11px] text-shell-500 uppercase">acts</span>
             </div>
           </div>
 
@@ -67,7 +67,7 @@ export function MobileMonitorToolbar({
               className="relative p-3 min-w-[48px] min-h-[48px] rounded-lg active:bg-shell-800 text-gray-400 active:text-crab-400 transition-colors"
             >
               <Trash2 size={22} />
-              <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-shell-700 text-shell-300 text-[10px] font-display rounded-full">
+              <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-shell-700 text-shell-300 text-[11px] font-display rounded-full">
                 {completedCount > 99 ? '99+' : completedCount}
               </span>
             </button>

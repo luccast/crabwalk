@@ -138,7 +138,7 @@ export const SessionNode = memo(function SessionNode({
       </div>
 
       {relativeTime && (
-        <div className="flex items-center gap-1 mt-2 font-console text-[10px] text-shell-500">
+        <div className="flex items-center gap-1 mt-2 font-console text-[11px] text-shell-500">
           <Clock size={10} className="text-shell-600" />
           <span>{relativeTime}</span>
         </div>

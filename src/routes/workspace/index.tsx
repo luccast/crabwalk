@@ -680,7 +680,7 @@ function WorkspacePage() {
                     )
                   })}
                   {starredPaths.size > 5 && (
-                    <span className="text-[10px] text-shell-500">+{starredPaths.size - 5}</span>
+                    <span className="text-[11px] text-shell-500">+{starredPaths.size - 5}</span>
                   )}
                 </div>
               ) : (
@@ -702,7 +702,7 @@ function WorkspacePage() {
                       >
                         <FileText
                           size={14}
-                          className={`flex-shrink-0 ${
+                          className={`shrink-0 ${
                             ext === '.md' ? 'text-crab-400' : 'text-shell-500'
                           }`}
                         />
@@ -714,7 +714,7 @@ function WorkspacePage() {
                             e.stopPropagation()
                             handleStar(filePath)
                           }}
-                          className="text-yellow-400 hover:text-yellow-300 flex-shrink-0"
+                          className="text-yellow-400 hover:text-yellow-300 shrink-0"
                           title="Unstar file"
                         >
                           <Star size={14} fill="currentColor" />
@@ -752,7 +752,7 @@ function WorkspacePage() {
            {/* Sidebar footer */}
           {pathValid && !sidebarCollapsed && (
             <div className="px-4 py-2 border-t border-shell-800">
-              <p className="font-console text-[10px] text-shell-600 truncate">
+              <p className="font-console text-[11px] text-shell-600 truncate">
                 {workspacePath}
               </p>
             </div>

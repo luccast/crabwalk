@@ -133,7 +133,7 @@ export function MobileFileDrawer({
             {/* Footer with path */}
             {pathValid && (
               <div className="px-4 py-3 border-t border-shell-800 bg-shell-950/50">
-                <p className="font-console text-[10px] text-shell-600 truncate">
+                <p className="font-console text-[11px] text-shell-600 truncate">
                   {workspacePath}
                 </p>
               </div>

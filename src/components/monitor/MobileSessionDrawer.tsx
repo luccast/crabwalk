@@ -57,7 +57,7 @@ function SubagentItem({
           : 'active:bg-shell-800/30 border-l-2 border-l-transparent'
       }`}
     >
-      <div className="font-display text-[9px] font-medium text-neon-cyan/60 uppercase tracking-widest mb-1">
+      <div className="font-display text-[11px] font-medium text-neon-cyan/60 uppercase tracking-widest mb-1">
         subagent
       </div>
       <div className="flex items-center gap-3">
@@ -239,7 +239,7 @@ export function MobileSessionDrawer({
                           : 'active:bg-shell-800/50 border-l-2 border-l-transparent'
                       }`}
                     >
-                      <div className="font-display text-[9px] font-medium text-shell-500 uppercase tracking-widest mb-1">
+                      <div className="font-display text-[11px] font-medium text-shell-500 uppercase tracking-widest mb-1">
                         main
                       </div>
                       <div className="flex items-center gap-3 mb-2">

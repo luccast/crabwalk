@@ -448,12 +448,12 @@ function MonitorPage() {
           {/* Stats display */}
           <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-shell-800/50 rounded-lg">
             <div className="flex items-center gap-2">
-              <span className="font-console text-[10px] text-shell-500 uppercase">Sessions</span>
+              <span className="font-console text-[11px] text-shell-500 uppercase">Sessions</span>
               <span className="font-display text-sm text-neon-mint">{sessions.length}</span>
             </div>
             <div className="w-px h-4 bg-shell-700" />
             <div className="flex items-center gap-2">
-              <span className="font-console text-[10px] text-shell-500 uppercase">Actions</span>
+              <span className="font-console text-[11px] text-shell-500 uppercase">Actions</span>
               <span className="font-display text-sm text-neon-peach">{actions.length}</span>
             </div>
           </div>
