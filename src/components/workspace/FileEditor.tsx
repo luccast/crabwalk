@@ -223,21 +223,21 @@ export function FileEditor({
           <FileText size={18} className={`flex-shrink-0 ${isMarkdown ? 'text-crab-400' : 'text-shell-500'}`} />
           <h2 className="font-display text-sm text-gray-200 truncate min-w-0">{fileName}</h2>
           {isMarkdown && (
-            <span className="hidden sm:inline px-2 py-0.5 bg-crab-900/30 text-crab-400 text-[10px] font-console uppercase rounded border border-crab-700/30 flex-shrink-0">
+            <span className="hidden sm:inline px-2 py-0.5 bg-crab-900/30 text-crab-400 text-[11px] font-console uppercase rounded border border-crab-700/30 flex-shrink-0">
               Markdown
             </span>
           )}
 
           {/* Edit mode indicator */}
           {isEditing && (
-            <span className="hidden sm:inline px-2 py-0.5 bg-neon-mint/10 text-neon-mint text-[10px] font-console uppercase rounded border border-neon-mint/30 flex-shrink-0">
+            <span className="hidden sm:inline px-2 py-0.5 bg-neon-mint/10 text-neon-mint text-[11px] font-console uppercase rounded border border-neon-mint/30 flex-shrink-0">
               Editing
             </span>
           )}
 
           {/* Unsaved changes indicator */}
           {isEditing && hasUnsavedChanges && (
-            <span className="hidden sm:inline px-2 py-0.5 bg-neon-peach/10 text-neon-peach text-[10px] font-console uppercase rounded border border-neon-peach/30 animate-pulse flex-shrink-0">
+            <span className="hidden sm:inline px-2 py-0.5 bg-neon-peach/10 text-neon-peach text-[11px] font-console uppercase rounded border border-neon-peach/30 animate-pulse flex-shrink-0">
               Unsaved
             </span>
           )}
@@ -254,19 +254,19 @@ export function FileEditor({
                 {saveStatus === 'saving' && (
                   <>
                     <div className="w-2.5 h-2.5 border-2 border-neon-cyan border-t-transparent rounded-full animate-spin" />
-                    <span className="font-console text-[10px] text-neon-cyan">Saving...</span>
+                    <span className="font-console text-[11px] text-neon-cyan">Saving...</span>
                   </>
                 )}
                 {saveStatus === 'saved' && (
                   <>
                     <Check size={12} className="text-neon-mint" />
-                    <span className="font-console text-[10px] text-neon-mint">Saved</span>
+                    <span className="font-console text-[11px] text-neon-mint">Saved</span>
                   </>
                 )}
                 {saveStatus === 'error' && (
                   <>
                     <AlertCircle size={12} className="text-neon-peach" />
-                    <span className="font-console text-[10px] text-neon-peach">Save failed</span>
+                    <span className="font-console text-[11px] text-neon-peach">Save failed</span>
                   </>
                 )}
               </motion.div>
@@ -278,12 +278,12 @@ export function FileEditor({
         <div className="flex items-center gap-3 flex-shrink-0 overflow-hidden">
           <div className="hidden min-[480px]:flex items-center gap-3">
             {fileSize !== undefined && (
-              <span className="font-console text-[10px] text-shell-500 whitespace-nowrap">
+              <span className="font-console text-[11px] text-shell-500 whitespace-nowrap">
                 {formatFileSize(fileSize)}
               </span>
             )}
             {fileModified && (
-              <span className="font-console text-[10px] text-shell-500 whitespace-nowrap">
+              <span className="font-console text-[11px] text-shell-500 whitespace-nowrap">
                 {formatModifiedDate(fileModified)}
               </span>
             )}
@@ -311,15 +311,17 @@ export function FileEditor({
                     <X size={14} />
                     <span className="hidden sm:inline">Cancel</span>
                   </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving || !hasUnsavedChanges}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neon-mint/10 hover:bg-neon-mint/20 rounded-lg text-sm font-console text-neon-mint transition-colors border border-neon-mint/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Save (Ctrl+S)"
-                  >
-                    <Save size={14} />
-                    <span className="hidden sm:inline">Save</span>
-                  </button>
+                  {hasUnsavedChanges && (
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neon-mint/10 hover:bg-neon-mint/20 rounded-lg text-sm font-console text-neon-mint transition-colors border border-neon-mint/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Save (Ctrl+S)"
+                    >
+                      <Save size={14} />
+                      <span className="hidden sm:inline">Save</span>
+                    </button>
+                  )}
                 </>
               )}
             </div>
