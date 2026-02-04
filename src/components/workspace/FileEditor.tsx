@@ -203,7 +203,7 @@ export function FileEditor({
       {/* File header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-shell-800 bg-shell-900/50 min-w-0">
         {/* Left: Star button */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {filePath && onStar && (
             <button
               onClick={() => onStar(filePath)}
@@ -220,17 +220,12 @@ export function FileEditor({
 
         {/* Middle: Filename and indicators - flexes and truncates */}
         <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
-          <FileText size={18} className={`flex-shrink-0 ${isMarkdown ? 'text-crab-400' : 'text-shell-500'}`} />
+          <FileText size={18} className={`shrink-0 ${isMarkdown ? 'text-crab-400' : 'text-shell-500'}`} />
           <h2 className="font-display text-sm text-gray-200 truncate min-w-0">{fileName}</h2>
-          {isMarkdown && (
-            <span className="hidden sm:inline px-2 py-0.5 bg-crab-900/30 text-crab-400 text-[11px] font-console uppercase rounded border border-crab-700/30 flex-shrink-0">
-              Markdown
-            </span>
-          )}
 
           {/* Unsaved changes indicator */}
           {isEditing && hasUnsavedChanges && (
-            <span className="hidden sm:inline px-2 py-0.5 bg-neon-peach/10 text-neon-peach text-[11px] font-console uppercase rounded border border-neon-peach/30 animate-pulse flex-shrink-0">
+            <span className="hidden sm:inline px-2 py-0.5 bg-neon-peach/10 text-neon-peach text-[11px] font-console uppercase rounded border border-neon-peach/30 animate-pulse shrink-0">
               Unsaved
             </span>
           )}
@@ -242,7 +237,7 @@ export function FileEditor({
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="hidden sm:flex items-center gap-1.5 flex-shrink-0"
+                className="hidden sm:flex items-center gap-1.5 shrink-0"
               >
                 {saveStatus === 'saving' && (
                   <>
@@ -268,7 +263,7 @@ export function FileEditor({
         </div>
 
         {/* Right: Metadata + Action buttons */}
-        <div className="flex items-center gap-3 flex-shrink-0 overflow-hidden">
+        <div className="flex items-center gap-3 shrink-0 overflow-hidden">
           <div className="hidden min-[480px]:flex items-center gap-3">
             {fileSize !== undefined && (
               <span className="font-console text-[11px] text-shell-500 whitespace-nowrap">
@@ -339,7 +334,7 @@ export function FileEditor({
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="w-full h-full min-h-[400px] bg-shell-900 border border-shell-700 rounded-lg p-4 font-mono text-sm text-gray-300 placeholder-shell-600 resize-none focus:outline-none focus:border-crab-500 focus:ring-1 focus:ring-crab-500/20 break-words"
+                  className="w-full h-full min-h-[400px] bg-shell-900 border border-shell-700 rounded-lg p-4 font-mono text-sm text-gray-300 placeholder-shell-600 resize-none focus:outline-none focus:border-crab-500 focus:ring-1 focus:ring-crab-500/20 wrap-break-words"
                   spellCheck={false}
                   autoCapitalize="off"
                   autoCorrect="off"
@@ -356,7 +351,7 @@ export function FileEditor({
                 className="min-w-0"
               >
                 {isMarkdown ? (
-                  <div className="prose prose-invert prose-sm max-w-full break-words">
+                  <div className="prose prose-invert prose-sm max-w-full wrap-break-words">
                     <ReactMarkdown
                       components={{
                         h1: ({ children }) => (
