@@ -202,57 +202,19 @@ export function FileEditor({
     <div className="h-full flex flex-col">
       {/* File header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-shell-800 bg-shell-900/50 min-w-0">
-        {/* Left: Controls - always visible, fixed width */}
+        {/* Left: Star button */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Star button */}
           {filePath && onStar && (
             <button
               onClick={() => onStar(filePath)}
-              className={`p-1.5 rounded transition-colors ${
-                isStarred
+              className={`p-1.5 rounded transition-colors ${isStarred
                   ? 'text-yellow-400 hover:text-yellow-300'
                   : 'text-shell-600 hover:text-yellow-400'
-              }`}
+                }`}
               title={isStarred ? 'Unstar file' : 'Star file'}
             >
               <Star size={16} fill={isStarred ? 'currentColor' : 'none'} />
             </button>
-          )}
-
-          {/* Action buttons */}
-          {onSave && (
-            <div className="flex items-center gap-1">
-              {!isEditing ? (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 transition-colors border border-shell-700"
-                  title="Edit file (or press E)"
-                >
-                  <Edit2 size={14} />
-                  <span className="hidden sm:inline">Edit</span>
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving || !hasUnsavedChanges}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neon-mint/10 hover:bg-neon-mint/20 rounded-lg text-sm font-console text-neon-mint transition-colors border border-neon-mint/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Save (Ctrl+S)"
-                  >
-                    <Save size={14} />
-                    <span className="hidden sm:inline">Save</span>
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 transition-colors border border-shell-700"
-                    title="Cancel (Esc)"
-                  >
-                    <X size={14} />
-                    <span className="hidden sm:inline">Cancel</span>
-                  </button>
-                </>
-              )}
-            </div>
           )}
         </div>
 
@@ -265,14 +227,14 @@ export function FileEditor({
               Markdown
             </span>
           )}
-          
+
           {/* Edit mode indicator */}
           {isEditing && (
             <span className="hidden sm:inline px-2 py-0.5 bg-neon-mint/10 text-neon-mint text-[10px] font-console uppercase rounded border border-neon-mint/30 flex-shrink-0">
               Editing
             </span>
           )}
-          
+
           {/* Unsaved changes indicator */}
           {isEditing && hasUnsavedChanges && (
             <span className="hidden sm:inline px-2 py-0.5 bg-neon-peach/10 text-neon-peach text-[10px] font-console uppercase rounded border border-neon-peach/30 animate-pulse flex-shrink-0">
@@ -312,7 +274,7 @@ export function FileEditor({
           </AnimatePresence>
         </div>
 
-        {/* Right: Metadata - shows when space allows, hides on very small screens */}
+        {/* Right: Metadata + Action buttons */}
         <div className="flex items-center gap-3 flex-shrink-0 overflow-hidden">
           <div className="hidden min-[480px]:flex items-center gap-3">
             {fileSize !== undefined && (
@@ -326,6 +288,42 @@ export function FileEditor({
               </span>
             )}
           </div>
+
+          {/* Action buttons */}
+          {onSave && (
+            <div className="flex items-center gap-2">
+              {!isEditing ? (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 transition-colors border border-shell-700"
+                  title="Edit file (or press E)"
+                >
+                  <Edit2 size={14} />
+                  <span className="hidden lg:inline">Edit</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleCancel}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 transition-colors border border-shell-700"
+                    title="Cancel (Esc)"
+                  >
+                    <X size={14} />
+                    <span className="hidden sm:inline">Cancel</span>
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving || !hasUnsavedChanges}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neon-mint/10 hover:bg-neon-mint/20 rounded-lg text-sm font-console text-neon-mint transition-colors border border-neon-mint/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Save (Ctrl+S)"
+                  >
+                    <Save size={14} />
+                    <span className="hidden sm:inline">Save</span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
