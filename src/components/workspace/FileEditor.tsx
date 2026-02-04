@@ -201,7 +201,7 @@ export function FileEditor({
   return (
     <div className="h-full flex flex-col">
       {/* File header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-shell-800 bg-shell-900/50 flex-wrap">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-shell-800 bg-shell-900/50">
         {/* Star button */}
         {filePath && onStar && (
           <button
@@ -285,7 +285,7 @@ export function FileEditor({
 
         {/* Action buttons */}
         {onSave && (
-          <div className="flex items-center gap-1 w-full sm:w-auto mt-2 sm:mt-0">
+          <div className="flex items-center gap-1 w-auto ml-auto">
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
@@ -322,7 +322,7 @@ export function FileEditor({
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-[1200px] mx-auto">
+        <div className="max-w-[1200px] mx-auto h-full">
           <AnimatePresence mode="wait">
             {isEditing ? (
               <motion.div
