@@ -1,6 +1,3 @@
-![Crabwalk 1](https://github.com/simplify123/crabwalk-for-windows/blob/master/crabwalk-windows-capture-1.png)
-![Crabwalk 2](https://github.com/simplify123/crabwalk-for-windows/blob/master/crabwalk-windows-capture-2.png)
-
 # 🦀 Crabwalk
 
 Real-time companion monitor for [OpenClaw (Clawdbot)](https://github.com/openclaw/openclaw) agents by [@luccasveg](https://x.com/luccasveg).
