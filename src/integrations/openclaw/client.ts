@@ -12,6 +12,8 @@ import {
   createConnectParams,
 } from './protocol'
 
+const DEFAULT_GATEWAY_URL = process.env.CLAWDBOT_URL || 'ws://127.0.0.1:18789'
+
 interface ChallengePayload {
   nonce: string
   ts: number
@@ -32,7 +34,7 @@ export class ClawdbotClient {
   private _connecting = false
 
   constructor(
-    private url: string = 'ws://127.0.0.1:18789',
+    private url: string = DEFAULT_GATEWAY_URL,
     private token?: string
   ) {}
 
@@ -239,11 +241,14 @@ export class ClawdbotClient {
 // Singleton instance for server use
 let clientInstance: ClawdbotClient | null = null
 
+export function getClawdbotEndpoint(): string {
+  return DEFAULT_GATEWAY_URL
+}
+
 export function getClawdbotClient(): ClawdbotClient {
   if (!clientInstance) {
-    const url = process.env.CLAWDBOT_URL || 'ws://127.0.0.1:18789'
     const token = process.env.CLAWDBOT_API_TOKEN
-    clientInstance = new ClawdbotClient(url, token)
+    clientInstance = new ClawdbotClient(DEFAULT_GATEWAY_URL, token)
   }
   return clientInstance
 }

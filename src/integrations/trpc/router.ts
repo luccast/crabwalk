@@ -2,7 +2,7 @@ import { initTRPC } from '@trpc/server'
 import { observable } from '@trpc/server/observable'
 import superjson from 'superjson'
 import { z } from 'zod'
-import { getClawdbotClient } from '~/integrations/openclaw/client'
+import { getClawdbotClient, getClawdbotEndpoint } from '~/integrations/openclaw/client'
 import { getPersistenceService } from '~/integrations/openclaw/persistence'
 import {
   parseEventFrame,
@@ -70,6 +70,10 @@ const openclawRouter = router({
   status: publicProcedure.query(() => {
     const client = getClawdbotClient()
     return { connected: client.connected }
+  }),
+
+  gatewayEndpoint: publicProcedure.query(() => {
+    return { url: getClawdbotEndpoint() }
   }),
 
   setDebugMode: publicProcedure

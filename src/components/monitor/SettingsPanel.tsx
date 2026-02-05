@@ -12,6 +12,7 @@ interface SettingsPanelProps {
   persistenceStartedAt: number | null
   persistenceSessionCount: number
   persistenceActionCount: number
+  gatewayEndpoint: string
   open: boolean
   onOpenChange: (open: boolean) => void
   onHistoricalModeChange: (enabled: boolean) => void
@@ -37,6 +38,7 @@ export function SettingsPanel({
   persistenceStartedAt,
   persistenceSessionCount,
   persistenceActionCount,
+  gatewayEndpoint,
   open,
   onOpenChange,
   onHistoricalModeChange,
@@ -305,7 +307,7 @@ export function SettingsPanel({
 
                   <div className="font-console text-[10px] text-shell-500 space-y-1.5">
                     <div>
-                      <span className="text-crab-600">&gt;</span> endpoint: ws://127.0.0.1:18789
+                      <span className="text-crab-600">&gt;</span> endpoint: {gatewayEndpoint}
                     </div>
                     <div>
                       <span className="text-crab-600">&gt;</span> protocol: v3

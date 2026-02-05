@@ -64,6 +64,7 @@ function MonitorPageWrapper() {
 
 const RETRY_DELAY = 3000
 const MAX_RETRIES = 10
+const DEFAULT_GATEWAY_ENDPOINT = 'ws://127.0.0.1:18789'
 
 function MonitorPage() {
   const [connected, setConnected] = useState(false)
@@ -73,6 +74,7 @@ function MonitorPage() {
   const [debugMode, setDebugMode] = useState(false)
   const [logCollection, setLogCollection] = useState(false)
   const [logCount, setLogCount] = useState(0)
+  const [gatewayEndpoint, setGatewayEndpoint] = useState(DEFAULT_GATEWAY_ENDPOINT)
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
 
   // Persistence service state
@@ -116,7 +118,17 @@ function MonitorPage() {
   useEffect(() => {
     checkStatus()
     checkPersistenceStatus()
+    loadGatewayEndpoint()
   }, [])
+
+  const loadGatewayEndpoint = async () => {
+    try {
+      const data = await trpc.openclaw.gatewayEndpoint.query()
+      setGatewayEndpoint(data.url)
+    } catch {
+      // keep default
+    }
+  }
 
   const checkPersistenceStatus = async () => {
     try {
@@ -468,6 +480,7 @@ function MonitorPage() {
             persistenceStartedAt={persistenceStartedAt}
             persistenceSessionCount={persistenceSessionCount}
             persistenceActionCount={persistenceActionCount}
+            gatewayEndpoint={gatewayEndpoint}
             open={settingsOpen}
             onOpenChange={setSettingsOpen}
             onHistoricalModeChange={handleHistoricalModeChange}
