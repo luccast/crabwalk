@@ -12,6 +12,8 @@ import {
   createConnectParams,
 } from './protocol'
 
+const DEFAULT_CLAWDBOT_URL = process.env.CLAWDBOT_URL || 'ws://127.0.0.1:18789'
+
 interface ChallengePayload {
   nonce: string
   ts: number
@@ -32,8 +34,8 @@ export class ClawdbotClient {
   private _connecting = false
 
   constructor(
-    private url: string = 'ws://127.0.0.1:18789',
-    private token?: string
+    private url: string = DEFAULT_CLAWDBOT_URL,
+    private token?: string,
   ) {}
 
   get connected() {
@@ -120,7 +122,7 @@ export class ClawdbotClient {
     msg: GatewayFrame | HelloOk,
     connectResolve?: (v: HelloOk) => void,
     _connectReject?: (e: Error) => void,
-    connectTimeout?: ReturnType<typeof setTimeout>
+    connectTimeout?: ReturnType<typeof setTimeout>,
   ) {
     if ('type' in msg) {
       switch (msg.type) {
@@ -218,7 +220,7 @@ export class ClawdbotClient {
   async listSessions(params?: SessionsListParams): Promise<SessionInfo[]> {
     const result = await this.request<{ sessions: SessionInfo[] }>(
       'sessions.list',
-      params
+      params,
     )
     return result.sessions ?? []
   }
@@ -239,9 +241,13 @@ export class ClawdbotClient {
 // Singleton instance for server use
 let clientInstance: ClawdbotClient | null = null
 
+export function getClawdbotEndpoint(): string {
+  return DEFAULT_CLAWDBOT_URL
+}
+
 export function getClawdbotClient(): ClawdbotClient {
   if (!clientInstance) {
-    const url = process.env.CLAWDBOT_URL || 'ws://127.0.0.1:18789'
+    const url = getClawdbotEndpoint()
     const token = process.env.CLAWDBOT_API_TOKEN
     clientInstance = new ClawdbotClient(url, token)
   }
@@ -250,13 +256,13 @@ export function getClawdbotClient(): ClawdbotClient {
 
 // Parsed event helpers
 export function isChatEvent(
-  event: EventFrame
+  event: EventFrame,
 ): event is EventFrame & { payload: ChatEvent } {
   return event.event === 'chat' && event.payload != null
 }
 
 export function isAgentEvent(
-  event: EventFrame
+  event: EventFrame,
 ): event is EventFrame & { payload: AgentEvent } {
   return event.event === 'agent' && event.payload != null
 }

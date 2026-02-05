@@ -39,18 +39,18 @@ function MonitorPageWrapper() {
 
   if (!mounted) {
     return (
-      <div className="h-screen flex items-center justify-center bg-shell-950 text-white">
+      <div className='h-screen flex items-center justify-center bg-shell-950 text-white'>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex flex-col items-center gap-4"
+          className='flex flex-col items-center gap-4'
         >
-          <div className="crab-icon-glow">
-            <CrabIdleAnimation className="w-16 h-16" />
+          <div className='crab-icon-glow'>
+            <CrabIdleAnimation className='w-16 h-16' />
           </div>
-          <div className="flex items-center gap-3">
-            <Loader2 size={18} className="animate-spin text-crab-400" />
-            <span className="font-display text-sm text-gray-400 tracking-wide uppercase">
+          <div className='flex items-center gap-3'>
+            <Loader2 size={18} className='animate-spin text-crab-400' />
+            <span className='font-display text-sm text-gray-400 tracking-wide uppercase'>
               Loading Monitor...
             </span>
           </div>
@@ -64,6 +64,7 @@ function MonitorPageWrapper() {
 
 const RETRY_DELAY = 3000
 const MAX_RETRIES = 10
+const DEFAULT_GATEWAY_ENDPOINT = 'ws://127.0.0.1:18789'
 
 function MonitorPage() {
   const [connected, setConnected] = useState(false)
@@ -73,11 +74,16 @@ function MonitorPage() {
   const [debugMode, setDebugMode] = useState(false)
   const [logCollection, setLogCollection] = useState(false)
   const [logCount, setLogCount] = useState(0)
+  const [gatewayEndpoint, setGatewayEndpoint] = useState(
+    DEFAULT_GATEWAY_ENDPOINT,
+  )
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
 
   // Persistence service state
   const [persistenceEnabled, setPersistenceEnabled] = useState(false)
-  const [persistenceStartedAt, setPersistenceStartedAt] = useState<number | null>(null)
+  const [persistenceStartedAt, setPersistenceStartedAt] = useState<
+    number | null
+  >(null)
   const [persistenceSessionCount, setPersistenceSessionCount] = useState(0)
   const [persistenceActionCount, setPersistenceActionCount] = useState(0)
 
@@ -102,7 +108,9 @@ function MonitorPage() {
 
   // Count clearable items (completed/failed execs)
   const completedCount = useMemo(() => {
-    return execs.filter(e => e.status === 'completed' || e.status === 'failed').length
+    return execs.filter(
+      (e) => e.status === 'completed' || e.status === 'failed',
+    ).length
   }, [execs])
 
   // Handler for clearing completed execs
@@ -111,11 +119,11 @@ function MonitorPage() {
     console.log(`[monitor] cleared ${count} completed execs`)
   }, [])
 
-
   // Check connection status and persistence on mount
   useEffect(() => {
     checkStatus()
     checkPersistenceStatus()
+    loadGatewayEndpoint()
   }, [])
 
   const checkPersistenceStatus = async () => {
@@ -139,12 +147,24 @@ function MonitorPage() {
     }
   }
 
+  const loadGatewayEndpoint = async () => {
+    try {
+      const data = await trpc.openclaw.gatewayEndpoint.query()
+      setGatewayEndpoint(data.url)
+    } catch (error) {
+      console.error('[monitor] failed to load gateway endpoint', error)
+    }
+  }
+
   const handleConnect = async (retry = 0) => {
     setConnecting(true)
     setRetryCount(retry)
     try {
       const result = await trpc.openclaw.connect.mutate()
-      if (result.status === 'connected' || result.status === 'already_connected') {
+      if (
+        result.status === 'connected' ||
+        result.status === 'already_connected'
+      ) {
         setConnected(true)
         setRetryCount(0)
         setConnecting(false)
@@ -167,11 +187,15 @@ function MonitorPage() {
   const hydrateFromPersistence = async () => {
     try {
       const status = await trpc.openclaw.persistenceStatus.query()
-      if (status.sessionCount > 0 || status.actionCount > 0 || status.execEventCount > 0) {
+      if (
+        status.sessionCount > 0 ||
+        status.actionCount > 0 ||
+        status.execEventCount > 0
+      ) {
         const data = await trpc.openclaw.persistenceHydrate.query()
         hydrateFromServer(data.sessions, data.actions, data.execEvents ?? [])
         console.log(
-          `[monitor] hydrated ${data.sessions.length} sessions, ${data.actions.length} actions, ${(data.execEvents ?? []).length} exec events`
+          `[monitor] hydrated ${data.sessions.length} sessions, ${data.actions.length} actions, ${(data.execEvents ?? []).length} exec events`,
         )
       }
       setPersistenceEnabled(status.enabled)
@@ -196,7 +220,7 @@ function MonitorPage() {
   const loadSessions = async () => {
     try {
       const result = await trpc.openclaw.sessions.query(
-        historicalMode ? { activeMinutes: 1440 } : { activeMinutes: 60 }
+        historicalMode ? { activeMinutes: 1440 } : { activeMinutes: 60 },
       )
       if (result.sessions) {
         for (const session of result.sessions) {
@@ -241,7 +265,9 @@ function MonitorPage() {
   const handleDownloadLogs = async () => {
     try {
       const result = await trpc.openclaw.downloadLogs.query()
-      const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' })
+      const blob = new Blob([JSON.stringify(result, null, 2)], {
+        type: 'application/json',
+      })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -351,7 +377,11 @@ function MonitorPage() {
 
     const subscription = trpc.openclaw.events.subscribe(undefined, {
       onData: (data) => {
-        if (data.type === 'session' && data.session?.key && data.session.status) {
+        if (
+          data.type === 'session' &&
+          data.session?.key &&
+          data.session.status
+        ) {
           updateSessionStatus(data.session.key, data.session.status)
         }
         if (data.type === 'action' && data.action) {
@@ -372,39 +402,46 @@ function MonitorPage() {
   }, [connected])
 
   return (
-    <div className="h-screen flex flex-col bg-shell-950 text-white overflow-hidden">
+    <div className='h-screen flex flex-col bg-shell-950 text-white overflow-hidden'>
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-shell-900 relative">
+      <header className='flex items-center justify-between px-4 py-3 bg-shell-900 relative'>
         {/* Gradient accent */}
-        <div className="absolute inset-0 bg-linear-to-r from-crab-950/20 via-transparent to-transparent pointer-events-none" />
+        <div className='absolute inset-0 bg-linear-to-r from-crab-950/20 via-transparent to-transparent pointer-events-none' />
 
-        <div className="relative flex items-center gap-4">
+        <div className='relative flex items-center gap-4'>
           <Link
-            to="/"
-            className="p-2 hover:bg-shell-800 rounded-lg transition-all border border-transparent hover:border-shell-600 group"
+            to='/'
+            className='p-2 hover:bg-shell-800 rounded-lg transition-all border border-transparent hover:border-shell-600 group'
           >
-            <ArrowLeft size={18} className="text-gray-400 group-hover:text-crab-400" />
+            <ArrowLeft
+              size={18}
+              className='text-gray-400 group-hover:text-crab-400'
+            />
           </Link>
 
           {/* Navigation tabs */}
           <NavTabs />
 
           {/* Connection status */}
-          <div className="flex items-center gap-2 ml-2">
-            <StatusIndicator status={connecting ? 'thinking' : connected ? 'active' : 'idle'} />
+          <div className='flex items-center gap-2 ml-2'>
+            <StatusIndicator
+              status={connecting ? 'thinking' : connected ? 'active' : 'idle'}
+            />
           </div>
         </div>
 
-        <div className="relative flex items-center gap-4">
+        <div className='relative flex items-center gap-4'>
           {connecting && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center gap-2"
+              className='flex items-center gap-2'
             >
-              <Loader2 size={14} className="animate-spin text-neon-peach" />
-              <span className="font-console text-xs text-shell-400">
-                {retryCount > 0 ? `retrying (${retryCount}/${MAX_RETRIES})...` : 'connecting...'}
+              <Loader2 size={14} className='animate-spin text-neon-peach' />
+              <span className='font-console text-xs text-shell-400'>
+                {retryCount > 0
+                  ? `retrying (${retryCount}/${MAX_RETRIES})...`
+                  : 'connecting...'}
               </span>
             </motion.div>
           )}
@@ -413,14 +450,14 @@ function MonitorPage() {
           {completedCount > 0 && (
             <button
               onClick={handleClearCompleted}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all bg-shell-800/50 hover:bg-crab-900/50 hover:border-crab-700/50 border border-transparent group"
+              className='flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all bg-shell-800/50 hover:bg-crab-900/50 hover:border-crab-700/50 border border-transparent group'
               title={`Clear ${completedCount} completed item${completedCount !== 1 ? 's' : ''}`}
             >
               <Trash2
                 size={14}
-                className="text-shell-400 group-hover:text-crab-400 transition-colors"
+                className='text-shell-400 group-hover:text-crab-400 transition-colors'
               />
-              <span className="font-console text-xs text-shell-400 group-hover:text-crab-400 transition-colors">
+              <span className='font-console text-xs text-shell-400 group-hover:text-crab-400 transition-colors'>
                 {completedCount}
               </span>
             </button>
@@ -434,27 +471,41 @@ function MonitorPage() {
                 ? 'bg-neon-mint/10 hover:bg-neon-mint/20'
                 : 'bg-shell-800/50 hover:bg-shell-700'
             }`}
-            title={persistenceEnabled ? 'Background service running' : 'Background service stopped'}
+            title={
+              persistenceEnabled
+                ? 'Background service running'
+                : 'Background service stopped'
+            }
           >
             <HardDrive
               size={14}
-              className={persistenceEnabled ? 'text-neon-mint' : 'text-shell-500'}
+              className={
+                persistenceEnabled ? 'text-neon-mint' : 'text-shell-500'
+              }
             />
             {persistenceEnabled && (
-              <span className="w-1.5 h-1.5 rounded-full bg-neon-mint animate-pulse" />
+              <span className='w-1.5 h-1.5 rounded-full bg-neon-mint animate-pulse' />
             )}
           </button>
 
           {/* Stats display */}
-          <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-shell-800/50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <span className="font-console text-[11px] text-shell-500 uppercase">Sessions</span>
-              <span className="font-display text-sm text-neon-mint">{sessions.length}</span>
+          <div className='hidden sm:flex items-center gap-3 px-3 py-1.5 bg-shell-800/50 rounded-lg'>
+            <div className='flex items-center gap-2'>
+              <span className='font-console text-[11px] text-shell-500 uppercase'>
+                Sessions
+              </span>
+              <span className='font-display text-sm text-neon-mint'>
+                {sessions.length}
+              </span>
             </div>
-            <div className="w-px h-4 bg-shell-700" />
-            <div className="flex items-center gap-2">
-              <span className="font-console text-[11px] text-shell-500 uppercase">Actions</span>
-              <span className="font-display text-sm text-neon-peach">{actions.length}</span>
+            <div className='w-px h-4 bg-shell-700' />
+            <div className='flex items-center gap-2'>
+              <span className='font-console text-[11px] text-shell-500 uppercase'>
+                Actions
+              </span>
+              <span className='font-display text-sm text-neon-peach'>
+                {actions.length}
+              </span>
             </div>
           </div>
 
@@ -464,6 +515,7 @@ function MonitorPage() {
             debugMode={debugMode}
             logCollection={logCollection}
             logCount={logCount}
+            gatewayEndpoint={gatewayEndpoint}
             persistenceEnabled={persistenceEnabled}
             persistenceStartedAt={persistenceStartedAt}
             persistenceSessionCount={persistenceSessionCount}
@@ -486,7 +538,7 @@ function MonitorPage() {
       </header>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className='flex-1 flex overflow-hidden'>
         {/* Sidebar - desktop only */}
         {!isMobile && (
           <SessionList

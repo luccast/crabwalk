@@ -305,7 +305,7 @@ export function SettingsPanel({
 
                   <div className="font-console text-[11px] text-shell-500 space-y-1.5">
                     <div>
-                      <span className="text-crab-600">&gt;</span> endpoint: ws://127.0.0.1:18789
+                      <span className='text-crab-600'>&gt;</span> endpoint: {gatewayEndpoint}
                     </div>
                     <div>
                       <span className="text-crab-600">&gt;</span> protocol: v3
