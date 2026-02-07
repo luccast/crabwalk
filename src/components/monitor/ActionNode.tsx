@@ -2,6 +2,15 @@ import { memo, useState } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import { motion } from 'framer-motion'
 import Markdown from 'react-markdown'
+import Prism from 'prismjs'
+
+// Import Prism components
+import 'prismjs/components/prism-javascript'
+import 'prismjs/components/prism-json'
+
+// Import Prism theme
+import 'prismjs/themes/prism-tomorrow.css'
+
 import {
   Loader2,
   CheckCircle,
@@ -201,21 +210,51 @@ export const ActionNode = memo(function ActionNode({
           prose prose-invert prose-xs max-w-none text-gray-300 text-xs
           prose-headings:text-gray-200 prose-headings:font-display prose-headings:text-xs prose-headings:my-1
           prose-p:text-xs prose-p:leading-relaxed prose-p:my-1
-          prose-code:text-neon-cyan prose-code:bg-shell-950 prose-code:px-1 prose-code:rounded prose-code:text-xs
-          prose-pre:bg-shell-950 prose-pre:border prose-pre:border-shell-800 prose-pre:text-xs prose-pre:my-1
           prose-a:text-neon-lavender prose-a:no-underline hover:prose-a:underline
           prose-li:text-xs prose-li:my-0.5
           prose-strong:text-gray-200
           ${expanded ? 'overflow-auto max-h-[400px]' : 'line-clamp-3'}
         `}>
-          <Markdown>{expanded ? fullContent! : truncatedContent!}</Markdown>
+          <Markdown
+            components={{
+              code: ({ children, className }) => {
+                const match = /language-(\w+)/.exec(className || '')
+                const lang = match ? match[1] : 'plain'
+                const codeStr = String(children).replace(/\n$/, '')
+                
+                return !className ? (
+                  <code className="bg-shell-800 text-neon-peach px-1.5 py-0.5 rounded text-[10px] font-mono">
+                    {children}
+                  </code>
+                ) : (
+                  <div className="bg-shell-950 border border-shell-800 rounded mb-2 overflow-hidden p-2">
+                    <pre className="font-mono text-[10px] overflow-auto">
+                      <code 
+                        dangerouslySetInnerHTML={{ 
+                          __html: Prism.highlight(codeStr, Prism.languages[lang] || Prism.languages.plain, lang) 
+                        }} 
+                      />
+                    </pre>
+                  </div>
+                )
+              }
+            }}
+          >
+            {expanded ? fullContent! : truncatedContent!}
+          </Markdown>
         </div>
       )}
 
       {expanded && data.toolArgs != null && (
-        <pre className="mt-2 font-console text-[11px] text-shell-500 bg-shell-950 p-2 rounded border border-shell-800 overflow-auto max-h-32">
-          {JSON.stringify(data.toolArgs, null, 2) as string}
-        </pre>
+        <div className="mt-2 bg-shell-950 rounded border border-shell-800 overflow-hidden p-2">
+           <pre className="font-mono text-[10px] overflow-auto text-gray-400">
+            <code 
+              dangerouslySetInnerHTML={{ 
+                __html: Prism.highlight(JSON.stringify(data.toolArgs, null, 2), Prism.languages.json, 'json') 
+              }} 
+            />
+          </pre>
+        </div>
       )}
 
       <Handle type="source" position={Position.Bottom} className="bg-shell-600! w-2! h-2! border-shell-800!" />

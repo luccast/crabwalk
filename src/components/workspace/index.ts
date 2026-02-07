@@ -1,4 +1,5 @@
 export { FileTree } from './FileTree'
+export { MarkdownViewer } from './MarkdownViewer'
 export { FileEditor } from './FileEditor'
 export { MobileBottomToolbar } from './MobileBottomToolbar'
 export { MobileFileDrawer } from './MobileFileDrawer'

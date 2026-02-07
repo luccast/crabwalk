@@ -211,7 +211,7 @@ export interface MonitorExecProcess {
 }
 
 // Utility functions
-export function parseSessionKey(key: string): {
+export function parseSessionKey(key: string | undefined): {
   agentId: string
   platform: string
   recipient: string
@@ -220,6 +220,9 @@ export function parseSessionKey(key: string): {
   // Format: "agent:main:discord:channel:1234567890"
   // Or: "agent:main:telegram:group:12345"
   // Or: "agent:main:whatsapp:+1234567890"
+  if (!key) {
+    return { agentId: 'unknown', platform: 'unknown', recipient: 'unknown', isGroup: false }
+  }
   const parts = key.split(':')
   const agentId = parts[1] || 'unknown'
   const platform = parts[2] || 'unknown'

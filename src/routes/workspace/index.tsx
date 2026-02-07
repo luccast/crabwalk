@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft,
@@ -30,6 +30,7 @@ import { NavTabs } from '~/components/navigation'
 import { CrabIdleAnimation } from '~/components/ani'
 import { useIsMobile } from '~/hooks/useIsMobile'
 import type { DirectoryEntry } from '~/lib/workspace-fs'
+import { z } from 'zod'
 
 // Get parent directory path using path separator logic
 // Works cross-platform for both / and \ separators
@@ -44,7 +45,12 @@ function getParentDirPath(filePath: string): string {
   return filePath.substring(0, lastSlashIndex)
 }
 
+const workspaceSearchSchema = z.object({
+  file: z.string().optional(),
+})
+
 export const Route = createFileRoute('/workspace/')({
+  validateSearch: (search) => workspaceSearchSchema.parse(search),
   component: WorkspacePageWrapper,
 })
 
@@ -83,6 +89,10 @@ function WorkspacePage() {
   const [workspacePathInput, setWorkspacePathInput] = useState('')
   const [pathError, setPathError] = useState<string | null>(null)
   const [pathValid, setPathValid] = useState(false)
+
+  // URL State
+  const { file: searchFile } = useSearch({ from: '/workspace/' })
+  const navigate = useNavigate({ from: '/workspace/' })
 
   // File tree state
   const [loading, setLoading] = useState(false)
@@ -256,11 +266,25 @@ function WorkspacePage() {
       if (type === 'file') {
         setSelectedPath(path)
         await loadFile(path)
+
+        // Update search params without full navigation
+        navigate({
+          search: (prev) => ({ ...prev, file: path }),
+          replace: true,
+        })
       }
       // Note: directory expansion is handled by FileTree component internally
     },
-    [loadFile]
+    [loadFile, navigate]
   )
+
+  // Sync URL search param to state on mount or change
+  useEffect(() => {
+    if (searchFile && searchFile !== selectedPath && workspacePath && pathValid) {
+      setSelectedPath(searchFile)
+      loadFile(searchFile)
+    }
+  }, [searchFile, workspacePath, pathValid, loadFile])
 
   // Handle directory loading for FileTree
   const handleLoadDirectory = useCallback(

@@ -27,8 +27,9 @@ const statusConfig = {
 }
 
 export function StatusIndicator({ status, size = 'md' }: StatusIndicatorProps) {
-  const isPulsing = status === 'active' || status === 'thinking'
-  const config = statusConfig[status]
+  const normalizedStatus = status || 'idle'
+  const isPulsing = normalizedStatus === 'active' || normalizedStatus === 'thinking'
+  const config = statusConfig[normalizedStatus] || statusConfig.idle
 
   return (
     <div className="relative flex items-center justify-center">

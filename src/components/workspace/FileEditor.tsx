@@ -1,13 +1,31 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   FileText,
   Edit2,
-  Save,
-  X,
   AlertCircle,
   Check,
+  Copy,
+  Layout,
+  Star,
 } from 'lucide-react'
+import Editor from 'react-simple-code-editor'
+import Prism from 'prismjs'
+
+// Import Prism components
+import 'prismjs/components/prism-javascript'
+import 'prismjs/components/prism-typescript'
+import 'prismjs/components/prism-markdown'
+import 'prismjs/components/prism-python'
+import 'prismjs/components/prism-json'
+import 'prismjs/components/prism-bash'
+import 'prismjs/components/prism-yaml'
+import 'prismjs/components/prism-sql'
+import 'prismjs/components/prism-rust'
+
+// Import Prism theme - we'll use a modified dark theme
+import 'prismjs/themes/prism-tomorrow.css'
+
 import ReactMarkdown from 'react-markdown'
 
 interface FileEditorProps {
@@ -22,7 +40,7 @@ interface FileEditorProps {
   onSave?: (content: string, callback: (success: boolean) => void) => void
 }
 
-function formatFileSize(bytes: number | undefined): string {
+const formatFileSize = (bytes: number | undefined): string => {
   if (bytes === undefined) return ''
   if (bytes === 0) return '0 B'
   const k = 1024
@@ -54,25 +72,28 @@ function formatModifiedDate(date: Date | undefined): string {
   }
 }
 
-function Star({ size = 16, fill = 'none', className = '' }: { size?: number; fill?: string; className?: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill={fill}
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-  )
+const getLanguage = (filename: string): string => {
+  if (!filename) return 'text'
+  const ext = filename.split('.').pop()?.toLowerCase() || ''
+  const langMap: Record<string, string> = {
+    'js': 'javascript',
+    'ts': 'typescript',
+    'jsx': 'javascript',
+    'tsx': 'typescript',
+    'py': 'python',
+    'md': 'markdown',
+    'json': 'json',
+    'sh': 'bash',
+    'bash': 'bash',
+    'yaml': 'yaml',
+    'yml': 'yaml',
+    'sql': 'sql',
+    'rs': 'rust',
+  }
+  return langMap[ext] || 'text'
 }
 
-export function FileEditor({
+export const FileEditor = memo(function FileEditor({
   content,
   fileName,
   filePath,
@@ -88,34 +109,43 @@ export function FileEditor({
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [lastSavedContent, setLastSavedContent] = useState(content)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const isMarkdown = fileName.toLowerCase().endsWith('.md') || fileName.toLowerCase().endsWith('.markdown')
+  const language = getLanguage(fileName)
+  const isMarkdown = language === 'markdown'
+  const isJSON = language === 'json'
 
-  // Track previous file path to detect file changes
-  const prevFilePathRef = useRef<string | undefined>(filePath)
-
-  // Reset edit state when file changes to prevent saving stale content
+  // Sync state when props change
   useEffect(() => {
-    if (filePath !== prevFilePathRef.current) {
-      // File changed - exit edit mode and reset buffer
-      setIsEditing(false)
-      setEditContent(content)
-      setLastSavedContent(content)
-      setSaveStatus('idle')
-      prevFilePathRef.current = filePath
-    } else if (!isEditing && content !== lastSavedContent) {
-      // Sync content when not editing and it changed externally
+    if (!isEditing) {
       setEditContent(content)
       setLastSavedContent(content)
     }
-  }, [content, isEditing, lastSavedContent, filePath])
+  }, [content, isEditing])
 
-  // Track if content has unsaved changes
-  const hasUnsavedChanges = editContent !== lastSavedContent
+  // Reset editing mode when file changes
+  useEffect(() => {
+    setIsEditing(false)
+  }, [filePath])
+
+  const handleFormat = useCallback(() => {
+    if (isJSON) {
+      try {
+        const formatted = JSON.stringify(JSON.parse(editContent), null, 2)
+        setEditContent(formatted)
+      } catch (e) {
+        console.error('[workspace] JSON format error:', e)
+      }
+    }
+  }, [editContent, isJSON])
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(editContent).catch(err => {
+      console.error('[workspace] Clipboard error:', err)
+    })
+  }, [editContent])
 
   const handleSave = useCallback(() => {
-    if (!onSave || !hasUnsavedChanges) return
+    if (!onSave || editContent === lastSavedContent) return
     setIsSaving(true)
     setSaveStatus('saving')
     onSave(editContent, (success) => {
@@ -129,7 +159,7 @@ export function FileEditor({
         setTimeout(() => setSaveStatus('idle'), 2000)
       }
     })
-  }, [editContent, hasUnsavedChanges, onSave])
+  }, [editContent, lastSavedContent, onSave])
 
   const handleCancel = useCallback(() => {
     setEditContent(lastSavedContent)
@@ -137,33 +167,10 @@ export function FileEditor({
     setSaveStatus('idle')
   }, [lastSavedContent])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Ctrl/Cmd + S to save
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault()
-      handleSave()
-    }
-    // Escape to cancel
-    if (e.key === 'Escape') {
-      handleCancel()
-    }
-  }
-
-  // Focus textarea when entering edit mode
-  useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.focus()
-    }
-  }, [isEditing])
-
   if (error) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-4"
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-crab-900/30 flex items-center justify-center border border-crab-700/50">
             <AlertCircle size={32} className="text-crab-400" />
           </div>
@@ -179,11 +186,7 @@ export function FileEditor({
   if (!content && !fileName) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center gap-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-shell-800/50 flex items-center justify-center border border-shell-700">
             <FileText size={32} className="text-shell-500" />
           </div>
@@ -198,19 +201,20 @@ export function FileEditor({
     )
   }
 
+  const highlight = (code: string) => {
+    const lang = Prism.languages[language] || Prism.languages.plain
+    return Prism.highlight(code, lang, language)
+  }
+
   return (
-    <div className="h-full flex flex-col">
-      {/* File header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-shell-800 bg-shell-900/50 min-w-0">
-        {/* Left: Star button */}
+    <div className="h-full flex flex-col min-h-0">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-shell-800 bg-shell-900/50 min-w-0 shrink-0">
         <div className="flex items-center gap-2 shrink-0">
           {filePath && onStar && (
             <button
               onClick={() => onStar(filePath)}
-              className={`p-1.5 rounded transition-colors ${isStarred
-                  ? 'text-yellow-400 hover:text-yellow-300'
-                  : 'text-shell-600 hover:text-yellow-400'
-                }`}
+              className={`p-1.5 rounded transition-colors ${isStarred ? 'text-yellow-400 hover:text-yellow-300' : 'text-shell-600 hover:text-yellow-400'}`}
               title={isStarred ? 'Unstar file' : 'Star file'}
             >
               <Star size={16} fill={isStarred ? 'currentColor' : 'none'} />
@@ -218,222 +222,144 @@ export function FileEditor({
           )}
         </div>
 
-        {/* Middle: Filename and indicators - flexes and truncates */}
         <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
           <FileText size={18} className={`shrink-0 ${isMarkdown ? 'text-crab-400' : 'text-shell-500'}`} />
           <h2 className="font-display text-sm text-gray-200 truncate min-w-0">{fileName}</h2>
-
-          {/* Unsaved changes indicator */}
-          {isEditing && hasUnsavedChanges && (
+          {isEditing && editContent !== lastSavedContent && (
             <span className="hidden sm:inline px-2 py-0.5 bg-neon-peach/10 text-neon-peach text-[11px] font-console uppercase rounded border border-neon-peach/30 animate-pulse shrink-0">
               Unsaved
             </span>
           )}
-
-          {/* Save status */}
           <AnimatePresence>
-            {isEditing && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="hidden sm:flex items-center gap-1.5 shrink-0"
-              >
-                {saveStatus === 'saving' && (
-                  <>
-                    <div className="w-2.5 h-2.5 border-2 border-neon-cyan border-t-transparent rounded-full animate-spin" />
-                    <span className="font-console text-[11px] text-neon-cyan">Saving...</span>
-                  </>
-                )}
-                {saveStatus === 'saved' && (
-                  <>
-                    <Check size={12} className="text-neon-mint" />
-                    <span className="font-console text-[11px] text-neon-mint">Saved</span>
-                  </>
-                )}
-                {saveStatus === 'error' && (
-                  <>
-                    <AlertCircle size={12} className="text-neon-peach" />
-                    <span className="font-console text-[11px] text-neon-peach">Save failed</span>
-                  </>
-                )}
+            {isEditing && saveStatus !== 'idle' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="hidden sm:flex items-center gap-1.5 shrink-0">
+                {saveStatus === 'saving' && <div className="w-2.5 h-2.5 border-2 border-neon-cyan border-t-transparent rounded-full animate-spin" />}
+                {saveStatus === 'saved' && <Check size={12} className="text-neon-mint" />}
+                {saveStatus === 'error' && <AlertCircle size={12} className="text-neon-peach" />}
+                <span className={`font-console text-[11px] ${saveStatus === 'error' ? 'text-neon-peach' : 'text-neon-cyan'}`}>
+                  {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Save failed'}
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Right: Metadata + Action buttons */}
-        <div className="flex items-center gap-3 shrink-0 overflow-hidden">
+        <div className="flex items-center gap-3 shrink-0">
           <div className="hidden min-[480px]:flex items-center gap-3">
-            {fileSize !== undefined && (
-              <span className="font-console text-[11px] text-shell-500 whitespace-nowrap">
-                {formatFileSize(fileSize)}
-              </span>
-            )}
-            {fileModified && (
-              <span className="font-console text-[11px] text-shell-500 whitespace-nowrap">
-                {formatModifiedDate(fileModified)}
-              </span>
-            )}
+            {fileSize !== undefined && <span className="font-console text-[11px] text-shell-500">{formatFileSize(fileSize)}</span>}
+            {fileModified && <span className="font-console text-[11px] text-shell-500">{formatModifiedDate(fileModified)}</span>}
           </div>
 
-          {/* Action buttons */}
-          {onSave && (
-            <div className="flex items-center gap-2">
-              {!isEditing ? (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 transition-colors border border-shell-700"
-                  title="Edit file (or press E)"
-                >
-                  <Edit2 size={14} />
-                  <span className="hidden lg:inline">Edit</span>
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={handleCancel}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 transition-colors border border-shell-700"
-                    title="Cancel (Esc)"
-                  >
-                    <X size={14} />
-                    <span className="hidden sm:inline">Cancel</span>
+          <div className="flex items-center gap-2">
+            {!isEditing && (
+              <button onClick={handleCopy} className="p-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg border border-shell-700 text-gray-300 transition-colors" title="Copy contents">
+                <Copy size={14} />
+              </button>
+            )}
+            {isEditing && isJSON && (
+              <button onClick={handleFormat} className="px-2.5 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 border border-shell-700 flex items-center gap-1.5" title="Format JSON">
+                <Layout size={14} />
+                <span className="hidden lg:inline">Format</span>
+              </button>
+            )}
+            {onSave && (
+              <>
+                {!isEditing ? (
+                  <button onClick={() => setIsEditing(true)} className="px-2.5 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 border border-shell-700 flex items-center gap-1.5" title="Edit (E)">
+                    <Edit2 size={14} />
+                    <span className="hidden lg:inline">Edit</span>
                   </button>
-                  {hasUnsavedChanges && (
-                    <button
-                      onClick={handleSave}
-                      disabled={isSaving}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neon-mint/10 hover:bg-neon-mint/20 rounded-lg text-sm font-console text-neon-mint transition-colors border border-neon-mint/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Save (Ctrl+S)"
-                    >
-                      <Save size={14} />
-                      <span className="hidden sm:inline">Save</span>
+                ) : (
+                  <>
+                    <button onClick={handleCancel} className="px-2.5 py-1.5 bg-shell-800 hover:bg-shell-700 rounded-lg text-sm font-console text-gray-300 border border-shell-700" title="Cancel (Esc)">
+                      Cancel
                     </button>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+                    <button onClick={handleSave} disabled={isSaving || editContent === lastSavedContent} className="px-2.5 py-1.5 bg-neon-mint/10 hover:bg-neon-mint/20 rounded-lg text-sm font-console text-neon-mint border border-neon-mint/30 disabled:opacity-50" title="Save (Ctrl+S)">
+                      Save
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-[1200px] mx-auto h-full">
-          <AnimatePresence mode="wait">
-            {isEditing ? (
-              <motion.div
-                key="editor"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="h-full"
-              >
-                <textarea
-                  ref={textareaRef}
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="w-full h-full min-h-[400px] bg-shell-900 border border-shell-700 rounded-lg p-4 font-mono text-sm font-light text-gray-300 placeholder-shell-600 resize-none focus:outline-none focus:border-crab-500 focus:ring-1 focus:ring-crab-500/20 wrap-break-words"
-                  spellCheck={false}
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  autoComplete="off"
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="viewer"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="min-w-0"
-              >
-                {isMarkdown ? (
-                  <div className="prose prose-invert prose-sm max-w-full wrap-break-words">
-                    <ReactMarkdown
-                      components={{
-                        h1: ({ children }) => (
-                          <h1 className="text-2xl font-display text-crab-400 mb-4 pb-2 border-b border-shell-800">
-                            {children}
-                          </h1>
-                        ),
-                        h2: ({ children }) => (
-                          <h2 className="text-xl font-display text-neon-mint mt-6 mb-3">{children}</h2>
-                        ),
-                        h3: ({ children }) => (
-                          <h3 className="text-lg font-display text-gray-200 mt-4 mb-2">{children}</h3>
-                        ),
-                        p: ({ children }) => (
-                          <p className="text-gray-300 leading-relaxed mb-4">{children}</p>
-                        ),
-                        code: ({ children, className }) => {
-                          const isInline = !className
-                          return isInline ? (
-                            <code className="bg-shell-800 text-neon-peach px-1.5 py-0.5 rounded text-sm font-mono">
-                              {children}
-                            </code>
-                          ) : (
-                            <pre className="bg-shell-900 border border-shell-800 rounded-lg p-4 mb-4 max-w-full">
-                              <code className="text-xs sm:text-sm font-mono text-gray-300 whitespace-pre-wrap break-all">{children}</code>
-                            </pre>
-                          )
-                        },
-                        ul: ({ children }) => (
-                          <ul className="list-disc list-inside text-gray-300 mb-4 space-y-1">{children}</ul>
-                        ),
-                        ol: ({ children }) => (
-                          <ol className="list-decimal list-inside text-gray-300 mb-4 space-y-1">{children}</ol>
-                        ),
-                        li: ({ children }) => <li className="text-gray-300">{children}</li>,
-                        a: ({ children, href }) => (
-                          <a
-                            href={href}
-                            className="text-neon-cyan hover:text-neon-mint transition-colors underline"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {children}
-                          </a>
-                        ),
-                        blockquote: ({ children }) => (
-                          <blockquote className="border-l-4 border-crab-500 pl-4 italic text-shell-400 mb-4">
-                            {children}
-                          </blockquote>
-                        ),
-                        hr: () => <hr className="border-shell-700 my-6" />,
-                        table: ({ children }) => (
-                          <table className="w-full border-collapse mb-4">{children}</table>
-                        ),
-                        thead: ({ children }) => (
-                          <thead className="bg-shell-800">{children}</thead>
-                        ),
-                        th: ({ children }) => (
-                          <th className="border border-shell-700 px-4 py-2 text-left font-display text-sm text-gray-200">
-                            {children}
-                          </th>
-                        ),
-                        td: ({ children }) => (
-                          <td className="border border-shell-700 px-4 py-2 text-sm text-gray-300">
-                            {children}
-                          </td>
-                        ),
+      <div className="flex-1 min-h-0 bg-shell-950 overflow-auto">
+        <div className="min-h-full relative p-6">
+          <div className="max-w-[1200px] mx-auto min-h-full">
+            <div className="bg-shell-900 border border-shell-800 rounded-lg overflow-hidden p-4 min-h-full">
+              <AnimatePresence mode="wait">
+                {isEditing ? (
+                  <motion.div key="editor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-full">
+                    <Editor
+                      value={editContent}
+                      onValueChange={code => setEditContent(code)}
+                      highlight={highlight}
+                      padding={10}
+                      className="font-mono text-sm editor-lightweight"
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 14,
+                        minHeight: '100%',
+                        width: '100%',
+                        backgroundColor: 'transparent',
+                        color: '#e1e1e6',
                       }}
-                    >
-                      {content}
-                    </ReactMarkdown>
-                  </div>
+                    />
+                  </motion.div>
                 ) : (
-                  <pre className="font-mono text-xs sm:text-sm text-gray-300 whitespace-pre-wrap break-all overflow-x-auto max-w-full">{content}</pre>
+                  <motion.div key="viewer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="min-h-full">
+                    {isMarkdown ? (
+                      <div className="prose prose-invert prose-sm max-w-none break-words text-gray-300">
+                        <ReactMarkdown
+                          components={{
+                            h1: ({ children }) => <h1 className="text-2xl font-display text-crab-400 mb-4 pb-2 border-b border-shell-800">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-xl font-display text-neon-mint mt-6 mb-3">{children}</h2>,
+                            h3: ({ children }) => <h3 className="text-lg font-display text-gray-200 mt-4 mb-2">{children}</h3>,
+                            code: ({ children, className }) => {
+                              const match = /language-(\w+)/.exec(className || '')
+                              const lang = match ? match[1] : 'plain'
+                              const codeStr = String(children).replace(/\n$/, '')
+                              
+                              return !className ? (
+                                <code className="bg-shell-800 text-neon-peach px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>
+                              ) : (
+                                <div className="bg-shell-950 border border-shell-800 rounded-lg mb-4 overflow-hidden p-4">
+                                  <pre className="font-mono text-sm overflow-auto">
+                                    <code 
+                                      dangerouslySetInnerHTML={{ 
+                                        __html: Prism.highlight(codeStr, Prism.languages[lang] || Prism.languages.plain, lang) 
+                                      }} 
+                                    />
+                                  </pre>
+                                </div>
+                              )
+                            },
+                          }}
+                        >
+                          {content}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <pre className="font-mono text-sm overflow-auto">
+                        <code 
+                          dangerouslySetInnerHTML={{ 
+                            __html: highlight(content) 
+                          }} 
+                        />
+                      </pre>
+                    )}
+                  </motion.div>
                 )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   )
-}
+})
 
 export default FileEditor

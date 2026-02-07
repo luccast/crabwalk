@@ -50,14 +50,22 @@ export class ClawdbotClient {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         this._connecting = false
-        this.ws?.close()
+        if (this.ws) {
+          this.ws.removeAllListeners()
+          this.ws.close()
+          this.ws = null
+        }
         reject(new Error('Connection timeout - is openclaw gateway running?'))
-      }, 10000)
+      }, 30000) // Increase to 30s for slow environments
 
       try {
-        this.ws = new WebSocket(this.url)
+        console.log(`[openclaw] connecting to ${this.url}...`)
+        this.ws = new WebSocket(this.url, {
+          handshakeTimeout: 20000, // 20s for WS handshake
+        })
       } catch (e) {
         clearTimeout(timeout)
+        this._connecting = false
         reject(new Error(`Failed to create WebSocket: ${e}`))
         return
       }
@@ -89,11 +97,12 @@ export class ClawdbotClient {
         reject(err)
       })
 
-      this.ws.on('close', (code, _reason) => {
+      this.ws.on('close', (code, reason) => {
         clearTimeout(timeout)
         const wasConnected = this._connected
         this._connected = false
         this._connecting = false
+        console.warn(`[openclaw] connection closed: code=${code}, reason=${reason || 'none'}`)
         // Only reconnect if we were previously connected and it wasn't a clean close
         if (wasConnected && code !== 1000) {
           this.scheduleReconnect()
@@ -179,10 +188,14 @@ export class ClawdbotClient {
 
   private scheduleReconnect() {
     if (this.reconnectTimer) return
+    console.log('[openclaw] scheduling reconnect in 2s...')
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null
-      this.connect().catch(console.error)
-    }, 5000)
+      this.connect().catch(e => {
+        console.error('[openclaw] reconnect failed:', e.message)
+        this.scheduleReconnect() // try again
+      })
+    }, 2000)
   }
 
   async request<T>(method: string, params?: unknown): Promise<T> {

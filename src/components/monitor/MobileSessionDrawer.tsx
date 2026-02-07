@@ -5,7 +5,8 @@ import { StatusIndicator } from './StatusIndicator'
 import type { MonitorSession } from '~/integrations/openclaw'
 
 function isSubagent(session: MonitorSession): boolean {
-  return Boolean(session.spawnedBy) || session.platform === 'subagent' || session.key.includes('subagent')
+  if (!session) return false
+  return Boolean(session.spawnedBy) || session.platform === 'subagent' || (session.key || '').includes('subagent')
 }
 
 function XIcon({ size = 14, className }: { size?: number; className?: string }) {
@@ -88,8 +89,8 @@ export function MobileSessionDrawer({
   const filteredParents = parentSessions.filter((session) => {
     const matchesText =
       !filter ||
-      session.recipient.toLowerCase().includes(filter.toLowerCase()) ||
-      session.agentId.toLowerCase().includes(filter.toLowerCase())
+      (session.recipient || '').toLowerCase().includes(filter.toLowerCase()) ||
+      (session.agentId || '').toLowerCase().includes(filter.toLowerCase())
     const matchesPlatform = !platformFilter || session.platform === platformFilter
     return matchesText && matchesPlatform
   })
@@ -97,7 +98,7 @@ export function MobileSessionDrawer({
   const sortedParents = [...filteredParents].sort((a, b) => {
     if (a.status !== 'idle' && b.status === 'idle') return -1
     if (a.status === 'idle' && b.status !== 'idle') return 1
-    return b.lastActivityAt - a.lastActivityAt
+    return (b.lastActivityAt || 0) - (a.lastActivityAt || 0)
   })
 
   const { subagentsByParent, orphanSubagents } = useMemo(() => {
@@ -109,7 +110,7 @@ export function MobileSessionDrawer({
       if (!isSubagent(session)) continue
       const matchesFilter =
         !filter ||
-        session.agentId.toLowerCase().includes(filter.toLowerCase()) ||
+        (session.agentId || '').toLowerCase().includes(filter.toLowerCase()) ||
         'subagent'.includes(filter.toLowerCase())
       if (!matchesFilter) continue
 
@@ -123,10 +124,10 @@ export function MobileSessionDrawer({
     }
 
     for (const [key, list] of byParent) {
-      list.sort((a, b) => b.lastActivityAt - a.lastActivityAt)
+      list.sort((a, b) => (b.lastActivityAt || 0) - (a.lastActivityAt || 0))
       byParent.set(key, list)
     }
-    orphans.sort((a, b) => b.lastActivityAt - a.lastActivityAt)
+    orphans.sort((a, b) => (b.lastActivityAt || 0) - (a.lastActivityAt || 0))
 
     return { subagentsByParent: byParent, orphanSubagents: orphans }
   }, [sessions, parentSessions, filter])

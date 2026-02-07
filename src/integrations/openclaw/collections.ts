@@ -21,11 +21,11 @@ const MAX_ACTION_HISTORY = 10
 const SPAWN_INFERENCE_WINDOW_MS = 10000
 
 function isSubagentSession(key: string): boolean {
-  return key.includes('subagent')
+  return (key || '').includes('subagent')
 }
 
 function isParentSession(key: string): boolean {
-  return !isSubagentSession(key) && !key.includes('lifecycle')
+  return !isSubagentSession(key) && !(key || '').includes('lifecycle')
 }
 
 // Track an action on a parent session with its timestamp
@@ -192,6 +192,7 @@ function createPlaceholderExec(event: MonitorExecEvent, sessionKey?: string): Mo
 
 // Helper to update or insert session
 export function upsertSession(session: MonitorSession) {
+  if (!session?.key) return
   const existing = sessionsCollection.state.get(session.key)
 
   if (existing) {
@@ -222,6 +223,7 @@ export function upsertSession(session: MonitorSession) {
 // - Node type reflects current state in the lifecycle
 // - tool_call/tool_result: separate nodes
 export function addAction(action: MonitorAction) {
+  if (!action?.runId) return
   // Learn runId → sessionKey mapping from actions with real session keys
   if (action.sessionKey && !action.sessionKey.includes('lifecycle')) {
     const previous = runSessionMap.get(action.runId)
@@ -289,6 +291,7 @@ export function addAction(action: MonitorAction) {
   }
 
   // For tool_call/tool_result, add as separate nodes
+  if (!action.id) return
   const existing = actionsCollection.state.get(action.id)
   if (!existing) {
     actionsCollection.insert({ ...action, sessionKey })

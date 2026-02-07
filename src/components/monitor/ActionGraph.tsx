@@ -147,6 +147,7 @@ function ActionGraphInner({
       : sessions
 
     for (const session of visibleSessions) {
+      if (!session?.key) continue
       nodes.push({
         id: `session-${session.key}`,
         type: 'session',
@@ -156,6 +157,7 @@ function ActionGraphInner({
     }
 
     for (const action of visibleActions) {
+      if (!action?.id) continue
       nodes.push({
         id: `action-${action.id}`,
         type: 'action',
@@ -165,6 +167,7 @@ function ActionGraphInner({
     }
 
     for (const exec of visibleExecs) {
+      if (!exec?.id) continue
       nodes.push({
         id: `exec-${exec.id}`,
         type: 'exec',
