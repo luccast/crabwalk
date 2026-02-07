@@ -434,7 +434,75 @@ code, pre {
   @apply transition-all duration-150;
 }
 
-/* Safe area padding for iOS */
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0);
+/* Rainbow Brackets */
+.bracket-depth-0 { color: #ffd700 !important; }
+.bracket-depth-1 { color: #da70d6 !important; }
+.bracket-depth-2 { color: #179fff !important; }
+.bracket-depth-3 { color: #ff7b72 !important; }
+.bracket-depth-4 { color: #7ee787 !important; }
+.bracket-depth-5 { color: #a5d6ff !important; }
+
+/* Highlighted Editor Overlay */
+.editor-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
+
+.editor-textarea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: white !important;
+  resize: none;
+  z-index: 10;
+  outline: none;
+  border: none;
+  white-space: pre;
+  word-wrap: normal;
+  overflow: auto;
+}
+
+.editor-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  white-space: pre;
+  word-wrap: normal;
+  overflow: hidden;
+}
+
+/* Lightweight Editor Styling */
+.editor-lightweight {
+  min-height: 100%;
+  width: 100%;
+}
+
+.editor-lightweight textarea {
+  outline: none !important;
+  background: transparent !important;
+  width: 100% !important;
+}
+
+.editor-lightweight pre {
+  pointer-events: none;
+  width: 100% !important;
+  background: transparent !important;
+}
+
+/* Prism Global Overrides */
+pre[class*="language-"],
+code[class*="language-"] {
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+

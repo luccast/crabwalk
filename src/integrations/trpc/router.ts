@@ -163,39 +163,43 @@ const openclawRouter = router({
       const persistence = getPersistenceService()
 
       const unsubscribe = client.onEvent((event) => {
-        // Collect raw event when log collection is enabled
-        if (collectLogs) {
-          collectedEvents.push({
-            timestamp: Date.now(),
-            event,
-          })
-        }
+        try {
+          // Collect raw event when log collection is enabled
+          if (collectLogs) {
+            collectedEvents.push({
+              timestamp: Date.now(),
+              event,
+            })
+          }
 
-        // Log raw event when debug mode is enabled
-        if (debugMode) {
-          console.log('\n[DEBUG] Raw event:', JSON.stringify(event, null, 2))
-        }
+          // Log raw event when debug mode is enabled
+          if (debugMode) {
+            console.log('\n[DEBUG] Raw event:', JSON.stringify(event, null, 2))
+          }
 
-        const parsed = parseEventFrame(event)
-        if (parsed) {
-          if (debugMode && parsed.action) {
-            console.log('[DEBUG] Parsed action:', parsed.action.type, parsed.action.eventType, 'sessionKey:', parsed.action.sessionKey)
+          const parsed = parseEventFrame(event)
+          if (parsed) {
+            if (debugMode && parsed.action) {
+              console.log('[DEBUG] Parsed action:', parsed.action.type, parsed.action.eventType, 'sessionKey:', parsed.action.sessionKey)
+            }
+            if (debugMode && parsed.execEvent) {
+              console.log('[DEBUG] Parsed exec:', parsed.execEvent.eventType, 'runId:', parsed.execEvent.runId, 'pid:', parsed.execEvent.pid)
+            }
+            if (parsed.session) {
+              emit.next({ type: 'session', session: parsed.session })
+            }
+            if (parsed.action) {
+              // Persist action if service is enabled
+              persistence.addAction(parsed.action)
+              emit.next({ type: 'action', action: parsed.action })
+            }
+            if (parsed.execEvent) {
+              persistence.addExecEvent(parsed.execEvent)
+              emit.next({ type: 'exec', execEvent: parsed.execEvent })
+            }
           }
-          if (debugMode && parsed.execEvent) {
-            console.log('[DEBUG] Parsed exec:', parsed.execEvent.eventType, 'runId:', parsed.execEvent.runId, 'pid:', parsed.execEvent.pid)
-          }
-          if (parsed.session) {
-            emit.next({ type: 'session', session: parsed.session })
-          }
-          if (parsed.action) {
-            // Persist action if service is enabled
-            persistence.addAction(parsed.action)
-            emit.next({ type: 'action', action: parsed.action })
-          }
-          if (parsed.execEvent) {
-            persistence.addExecEvent(parsed.execEvent)
-            emit.next({ type: 'exec', execEvent: parsed.execEvent })
-          }
+        } catch (e) {
+          console.error('[openclaw] Subscription error in onEvent:', e)
         }
       })
 

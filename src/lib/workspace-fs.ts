@@ -34,7 +34,18 @@ export async function validatePath(workspaceRoot: string, targetPath: string): P
   // Resolve symlinks to prevent escaping workspace via symlinked paths
   // This ensures we validate the actual filesystem location, not the symlink itself
   const realRoot = await fs.realpath(resolvedRoot)
-  const realTarget = await fs.realpath(resolvedTarget)
+  
+  // realpath will fail if targetPath doesn't exist (e.g. for createFile)
+  // So we handle that by getting realpath of the parent directory
+  let realTarget: string;
+  try {
+    realTarget = await fs.realpath(resolvedTarget)
+  } catch (err) {
+    // If target doesn't exist, validate its parent
+    const parentDir = path.dirname(resolvedTarget)
+    const realParent = await fs.realpath(parentDir)
+    realTarget = path.join(realParent, path.basename(resolvedTarget))
+  }
 
   // Normalize paths for cross-platform comparison
   // Convert backslashes to forward slashes and ensure consistent formatting
@@ -270,10 +281,7 @@ export async function writeFile(
   try {
     // Check if parent directory exists
     const parentDir = path.dirname(safePath)
-    const parentStats = await fs.stat(parentDir)
-    if (!parentStats.isDirectory()) {
-      throw new Error('Parent path is not a directory')
-    }
+    await fs.mkdir(parentDir, { recursive: true })
 
     // Write file content
     await fs.writeFile(safePath, content, 'utf-8')
@@ -323,10 +331,9 @@ export async function createFile(
   
   // Get the parent directory path
   const parentDir = path.dirname(expandedFilePath)
-  const fileName = path.basename(expandedFilePath)
   
   // Validate that parent directory is within workspace root
-  const safeParentPath = await validatePath(expandedRoot, parentDir)
+  await validatePath(expandedRoot, parentDir)
   
   // Check if file already exists
   const exists = await pathExists(expandedFilePath)
@@ -334,23 +341,11 @@ export async function createFile(
     throw new Error('File already exists')
   }
 
-  // Check if parent directory exists
-  try {
-    const parentStats = await fs.stat(safeParentPath)
-    if (!parentStats.isDirectory()) {
-      throw new Error('Parent path is not a directory')
-    }
-  } catch (error) {
-    // Preserve original error if it's already a descriptive error we threw
-    if (error instanceof Error && error.message === 'Parent path is not a directory') {
-      throw error
-    }
-    throw new Error('Parent directory does not exist')
-  }
-
   // Create the file
   try {
-    await fs.writeFile(expandedFilePath, content, 'utf-8')
+    const safePath = path.resolve(expandedFilePath)
+    await fs.mkdir(path.dirname(safePath), { recursive: true })
+    await fs.writeFile(safePath, content, 'utf-8')
   } catch (error) {
     throw new Error(
       `Failed to create file: ${error instanceof Error ? error.message : 'Unknown error'}`

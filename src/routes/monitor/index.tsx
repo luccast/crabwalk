@@ -353,7 +353,7 @@ function MonitorPage() {
     if (!connected) return
     const interval = setInterval(() => {
       loadSessions()
-    }, 5000) // Poll every 5 seconds
+    }, 10000) // Poll every 10 seconds to reduce load
     return () => clearInterval(interval)
   }, [connected, historicalMode])
 

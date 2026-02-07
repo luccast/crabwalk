@@ -45,7 +45,7 @@ export const SessionNode = memo(function SessionNode({
   }, [])
 
   // Detect if this is a subagent session by checking if platform is "subagent" or if key contains "subagent"
-  const isSubagent = data.platform === 'subagent' || data.key.includes('subagent') || Boolean(data.spawnedBy)
+  const isSubagent = data.platform === 'subagent' || (data.key || '').includes('subagent') || Boolean(data.spawnedBy)
   const platformIcon = isSubagent ? platformIcons.subagent : (platformIcons[data.platform] ?? '📱')
   const displayPlatform = isSubagent ? 'subagent' : data.platform
 
@@ -55,9 +55,11 @@ export const SessionNode = memo(function SessionNode({
 
   const handleCopyKey = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(data.key).catch(() => {})
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    if (data.key) {
+      navigator.clipboard.writeText(data.key).catch(() => {})
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    }
   }, [data.key])
 
   return (

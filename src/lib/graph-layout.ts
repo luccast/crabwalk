@@ -97,14 +97,14 @@ export function layoutGraph(
   }
   // Sort by session key for stable ordering - lastActivityAt changes during streaming
   // which would cause nodes to swap positions
-  rootSessions.sort((a, b) => a.key.localeCompare(b.key))
+  rootSessions.sort((a, b) => (a.key || '').localeCompare(b.key || ''))
 
   // Assign root index to each root
   rootSessions.forEach((root, idx) => sessionToRoot.set(root.key, idx))
 
   // Find root for any session by walking up the spawn chain
-  const findRootIndex = (sessionKey: string, visited = new Set<string>()): number => {
-    if (visited.has(sessionKey)) return 0
+  const findRootIndex = (sessionKey: string | undefined, visited = new Set<string>()): number => {
+    if (!sessionKey || visited.has(sessionKey)) return 0
     visited.add(sessionKey)
 
     if (sessionToRoot.has(sessionKey)) {
@@ -120,8 +120,8 @@ export function layoutGraph(
   }
 
   // Determine column for each session based on spawn hierarchy
-  const getSessionDepth = (sessionKey: string, visited = new Set<string>()): number => {
-    if (visited.has(sessionKey)) return 0
+  const getSessionDepth = (sessionKey: string | undefined, visited = new Set<string>()): number => {
+    if (!sessionKey || visited.has(sessionKey)) return 0
     visited.add(sessionKey)
 
     const session = sessions.find((s) => s.key === sessionKey)

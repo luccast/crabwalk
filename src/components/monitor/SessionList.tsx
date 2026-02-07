@@ -5,7 +5,8 @@ import { StatusIndicator } from "./StatusIndicator";
 import type { MonitorSession } from "~/integrations/openclaw";
 
 function isSubagent(session: MonitorSession): boolean {
-  return Boolean(session.spawnedBy) || session.platform === "subagent" || session.key.includes("subagent");
+  if (!session) return false;
+  return Boolean(session.spawnedBy) || session.platform === "subagent" || (session.key || "").includes("subagent");
 }
 
 function XIcon({
