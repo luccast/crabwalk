@@ -2,6 +2,7 @@ import { HeadContent, Scripts, createRootRoute, Link } from '@tanstack/react-rou
 import { motion } from 'framer-motion'
 import appCss from '../styles.css?url'
 import { QueryProvider } from '../integrations/query/provider'
+import { AuthProvider } from '../hooks/use-auth'
 import { CrabIdleAnimation } from '../components/ani'
 
 export const Route = createRootRoute({
@@ -69,7 +70,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="bg-shell-950 text-gray-100">
         <QueryProvider>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </QueryProvider>
         <Scripts />
       </body>

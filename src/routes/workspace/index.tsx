@@ -28,6 +28,7 @@ import {
 } from '~/components/workspace'
 import { NavTabs } from '~/components/navigation'
 import { CrabIdleAnimation } from '~/components/ani'
+import { ProtectedRoute } from '~/components/auth'
 import { useIsMobile } from '~/hooks/useIsMobile'
 import type { DirectoryEntry } from '~/lib/workspace-fs'
 
@@ -45,7 +46,11 @@ function getParentDirPath(filePath: string): string {
 }
 
 export const Route = createFileRoute('/workspace/')({
-  component: WorkspacePageWrapper,
+  component: () => (
+    <ProtectedRoute>
+      <WorkspacePageWrapper />
+    </ProtectedRoute>
+  ),
 })
 
 // Wrapper to ensure client-only rendering

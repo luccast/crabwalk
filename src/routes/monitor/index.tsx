@@ -26,10 +26,15 @@ import {
   MobileMonitorToolbar,
 } from '~/components/monitor'
 import { CrabIdleAnimation } from '~/components/ani'
+import { ProtectedRoute } from '~/components/auth'
 import { useIsMobile } from '~/hooks/useIsMobile'
 
 export const Route = createFileRoute('/monitor/')({
-  component: MonitorPageWrapper,
+  component: () => (
+    <ProtectedRoute>
+      <MonitorPageWrapper />
+    </ProtectedRoute>
+  ),
 })
 
 // Wrapper to ensure client-only rendering (useLiveQuery needs client)

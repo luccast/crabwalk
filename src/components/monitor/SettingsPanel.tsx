@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Settings, X, Wifi, WifiOff, RefreshCw, Terminal, Download, Trash2, Database, HardDrive, Play, Square, CloudDownload } from 'lucide-react'
+import { Settings, X, Wifi, WifiOff, RefreshCw, Terminal, Download, Trash2, Database, HardDrive, Play, Square, CloudDownload, Shield } from 'lucide-react'
 import { version } from '../../../package.json'
+import { useAuth } from '~/hooks/use-auth'
+import { trpc } from '~/integrations/trpc/client'
 
 interface SettingsPanelProps {
   connected: boolean
@@ -53,6 +56,22 @@ export function SettingsPanel({
   onPersistenceStop,
   onPersistenceClear,
 }: SettingsPanelProps) {
+  const { timeoutDuration, setTimeoutDuration, lock } = useAuth()
+  const [credentialType, setCredentialType] = useState<'password' | 'token' | 'none'>('none')
+
+  const timeoutMinutes = Math.round(timeoutDuration / 60000)
+
+  const handleTimeoutChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const minutes = parseInt(e.target.value, 10)
+    setTimeoutDuration(minutes * 60000)
+  }
+
+  // Fetch credential type from server
+  useEffect(() => {
+    trpc.auth.credentialType.query()
+      .then(result => setCredentialType(result.type))
+      .catch(() => {})
+  }, [])
 
   return (
     <>
@@ -246,6 +265,67 @@ export function SettingsPanel({
                     <p className="font-console text-[11px] text-shell-500">
                       <span className="text-crab-600">&gt;</span> fetch 24h of sessions from gateway on refresh
                     </p>
+                  </div>
+                </div>
+
+                {/* Access Control */}
+                <div className="panel-retro p-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Shield size={18} className="text-shell-500" />
+                    <span className="font-display text-sm font-medium text-gray-200 uppercase tracking-wide">
+                      Access Control
+                    </span>
+                  </div>
+
+                  <p className="font-console text-[11px] text-shell-500 mb-3">
+                    <span className="text-crab-600">&gt;</span> auto-lock on inactivity
+                  </p>
+
+                  {/* Timeout slider */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-console text-[11px] text-gray-300 uppercase">
+                        Timeout
+                      </span>
+                      <span className="font-display text-sm text-neon-mint">
+                        {timeoutMinutes} min
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="5"
+                      max="60"
+                      step="5"
+                      value={timeoutMinutes}
+                      onChange={handleTimeoutChange}
+                      className="w-full h-2 bg-shell-800 rounded-lg appearance-none cursor-pointer accent-crab-500"
+                      style={{
+                        background: `linear-gradient(to right, rgb(220 38 38) 0%, rgb(220 38 38) ${((timeoutMinutes - 5) / 55) * 100}%, rgb(31 41 55) ${((timeoutMinutes - 5) / 55) * 100}%, rgb(31 41 55) 100%)`,
+                      }}
+                    />
+                    <div className="flex justify-between mt-1">
+                      <span className="font-console text-[10px] text-shell-600">5m</span>
+                      <span className="font-console text-[10px] text-shell-600">60m</span>
+                    </div>
+                  </div>
+
+                  {/* Manual lock button */}
+                  <button
+                    onClick={() => lock()}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 font-display text-xs uppercase tracking-wide bg-crab-600 hover:bg-crab-500 text-white rounded-lg transition-all"
+                    style={{ boxShadow: '0 2px 0 0 #991b1b' }}
+                  >
+                    <Shield size={12} />
+                    Lock Now
+                  </button>
+
+                  {/* Credential info */}
+                  <div className="mt-4 pt-4 border-t border-shell-700">
+                    <div className="font-console text-[11px] text-shell-500 space-y-1">
+                      <div>
+                        <span className="text-crab-600">&gt;</span> auth: {credentialType} configured
+                      </div>
+                    </div>
                   </div>
                 </div>
 
