@@ -103,7 +103,8 @@ export class ClawdbotClient {
   }
 
   private handleChallenge(_challenge: ChallengePayload) {
-    if (!this.token || this.ws?.readyState !== WebSocket.OPEN) {
+    const hasAuth = this.token || process.env.CLAWDBOT_PASSWORD
+    if (!hasAuth || this.ws?.readyState !== WebSocket.OPEN) {
       return
     }
 
@@ -139,6 +140,12 @@ export class ClawdbotClient {
             this._connected = true
             this._connecting = false
             connectResolve?.(msg.payload as HelloOk)
+          } else if (!msg.ok && msg.id?.startsWith('connect-')) {
+            // Auth/connect error from gateway
+            if (connectTimeout) clearTimeout(connectTimeout)
+            this._connecting = false
+            this.ws?.close()
+            _connectReject?.(new Error(msg.error?.message || 'Connection rejected'))
           } else {
             this.handleResponse(msg)
           }

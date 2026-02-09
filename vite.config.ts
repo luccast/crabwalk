@@ -12,7 +12,12 @@ export default defineConfig({
 		}),
 		tailwindcss(),
 		tanstackStart(),
-		nitro(),
+		nitro({
+			externals: {
+				inline: [],
+				external: ['ws', 'bufferutil', 'utf-8-validate'],
+			},
+		}),
 		viteReact(),
 	],
 });
