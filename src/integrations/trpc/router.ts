@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { initTRPC } from '@trpc/server'
 import { observable } from '@trpc/server/observable'
 import superjson from 'superjson'
@@ -23,6 +24,28 @@ import {
   type DirectoryEntry,
   type FileContent,
 } from '~/lib/workspace-fs'
+
+// Server-side auth session storage (cleared on restart)
+const activeSessions = new Map<string, { createdAt: number }>()
+const SESSION_TTL = 24 * 60 * 60 * 1000 // 24h max session lifetime
+
+// Cleanup expired sessions every 10 minutes
+setInterval(() => {
+  const now = Date.now()
+  for (const [id, session] of activeSessions) {
+    if (now - session.createdAt > SESSION_TTL) {
+      activeSessions.delete(id)
+    }
+  }
+}, 10 * 60 * 1000)
+
+// Constant-time comparison to prevent timing attacks
+function secureCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  if (bufA.length !== bufB.length) return false
+  return crypto.timingSafeEqual(bufA, bufB)
+}
 
 // Server-side debug mode state
 let debugMode = false
@@ -348,6 +371,67 @@ const workspaceRouter = router({
     }),
 })
 
+// Auth router
+const authRouter = router({
+  verify: publicProcedure
+    .input(z.object({
+      credential: z.string().min(1),
+      type: z.enum(['password', 'token']),
+    }))
+    .mutation(({ input }) => {
+      const { credential, type } = input
+      let isValid = false
+
+      if (type === 'password') {
+        const envPassword = process.env.CLAWDBOT_PASSWORD
+        if (envPassword && secureCompare(credential, envPassword)) {
+          isValid = true
+        }
+      } else if (type === 'token') {
+        const envToken = process.env.CLAWDBOT_API_TOKEN
+        if (envToken && secureCompare(credential, envToken)) {
+          isValid = true
+        }
+      }
+
+      if (isValid) {
+        const sessionId = crypto.randomUUID()
+        activeSessions.set(sessionId, { createdAt: Date.now() })
+        console.log(`[auth] ${type} login successful`)
+        return { success: true as const, sessionId }
+      }
+
+      console.log(`[auth] ${type} login failed - invalid credentials`)
+      return { success: false as const, error: 'Invalid credentials' }
+    }),
+
+  check: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .query(({ input }) => {
+      const session = activeSessions.get(input.sessionId)
+      if (session && Date.now() - session.createdAt < SESSION_TTL) {
+        return { valid: true as const }
+      }
+      // Clean up expired session
+      if (session) activeSessions.delete(input.sessionId)
+      return { valid: false as const, error: 'Invalid session' }
+    }),
+
+  credentialType: publicProcedure.query(() => {
+    if (process.env.CLAWDBOT_PASSWORD) return { type: 'password' as const }
+    if (process.env.CLAWDBOT_API_TOKEN) return { type: 'token' as const }
+    return { type: 'none' as const }
+  }),
+
+  logout: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .mutation(({ input }) => {
+      activeSessions.delete(input.sessionId)
+      console.log('[auth] session logged out')
+      return { success: true }
+    }),
+})
+
 export const appRouter = router({
   hello: publicProcedure
     .input(z.object({ name: z.string().optional() }))
@@ -363,6 +447,7 @@ export const appRouter = router({
     ]
   }),
 
+  auth: authRouter,
   openclaw: openclawRouter,
   workspace: workspaceRouter,
 })

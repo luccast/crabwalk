@@ -233,6 +233,7 @@ export function parseSessionKey(key: string): {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createConnectParams(token?: string): any {
+  const password = process.env.CLAWDBOT_PASSWORD
   return {
     minProtocol: 3,
     maxProtocol: 3,
@@ -249,6 +250,6 @@ export function createConnectParams(token?: string): any {
     permissions: {},
     locale: 'en-US',
     userAgent: 'crabwalk-monitor/0.1.0',
-    auth: token ? { token } : undefined,
+    auth: password ? { password } : token ? { token } : undefined,
   }
 }
